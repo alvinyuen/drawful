@@ -1,32 +1,22 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
+
 import './app.scss';
 import PlayerCanvas from './PlayerCanvas.jsx';
 import HostCanvas from './HostCanvas.jsx';
+import PlayerJoin from './PlayerJoin.jsx';
 
-import React, { Component } from "react";
-import ReactDOM from "react-dom";
+const htmlWindow = window;
 
-class App extends Component {
+const App = () => {
+  /* large device as hosts */
+  /* mobile device as clients */
+  const largeDev = htmlWindow.innerWidth > 1000;
+  return (
+    <div className="app-container">
+      {largeDev ? <HostCanvas /> : <PlayerJoin />}
+    </div>
+  );
+};
 
-    constructor(props){
-        super(props);
-    }
-
-    render(){
-        /* large device as hosts */
-        /* mobile device as clients */
-        const largeDev = window.innerWidth > 1000;
-        return (
-            <div className="app-container">
-                 {largeDev ? <HostCanvas/> : <PlayerCanvas/>}
-            </div>
-        )
-    }
-}
-
-
-
-
-
-ReactDOM.render(
-    <App/>
-    ,document.getElementById("app"));
+ReactDOM.render(<App />, document.getElementById('app'));

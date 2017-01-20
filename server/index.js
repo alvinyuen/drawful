@@ -1,39 +1,34 @@
-'use strict';
-
 const app = require('express')();
-const path = require('path');
-const chalk = require('chalk');
+const server = require('http').createServer(app);
 require('./variables/paths')(app);
 
 const port = 8888;
 
-//run server listen on 8888
-const server = app.listen(port, (err) => {
-    if(err) throw err;
-    console.log(`drawful server is connected to port ${port}`);
+/* run server listen on 8888 */
+server.listen(port, (err) => {
+  if (err) throw err;
+  console.log(`drawful server is connected to port ${port}`);
 });
 
-const io = require('socket.io')(server);
+/* socket io */
+const io = require('socket.io').listen(server);
+require('./socket-io/sockets')(io);
 
-
-/*static middle*/
+/*  static middle */
 app.use(require('./middleware/static.middleware'));
 
-
-
+/* file path */
 app.get('/*', (req, res, next) => {
-    console.log('requiring path:', req.path);
-    res.sendFile(app.get('indexHTMLPath'))
+  console.log('requiring path:', req.path);
+  res.sendFile(app.get('indexHTMLPath'));
+  next();
 });
 
-/*error handling*/
+/*  error handling*/
 app.get((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(err.status || 500).send(err.message || 'server error occured');
+  console.error(err.stack);
+  res.status(err.status || 500).send(err.message || 'server error occured');
+  next();
 });
 
 
-module.exports = {
-    server,
-    io
-}
