@@ -62,7 +62,7 @@
 	
 	var _PlayerCanvas2 = _interopRequireDefault(_PlayerCanvas);
 	
-	var _HostCanvas = __webpack_require__(240);
+	var _HostCanvas = __webpack_require__(293);
 	
 	var _HostCanvas2 = _interopRequireDefault(_HostCanvas);
 	
@@ -26932,15 +26932,19 @@
 	
 	__webpack_require__(238);
 	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	var _socket = __webpack_require__(240);
 	
-	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+	var _socket2 = _interopRequireDefault(_socket);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
 	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var socket = (0, _socket2.default)();
 	
 	var PlayerCanvas = function (_Component) {
 	  _inherits(PlayerCanvas, _Component);
@@ -26951,12 +26955,16 @@
 	    var _this = _possibleConstructorReturn(this, (PlayerCanvas.__proto__ || Object.getPrototypeOf(PlayerCanvas)).call(this, props));
 	
 	    _this.state = {
-	      pixels: []
+	      imgData: [],
+	      startPos: {},
+	      endPos: {},
+	      drawing: false
 	    };
 	
 	    _this.updateCanvas = _this.updateCanvas.bind(_this);
 	    _this.mouseDownHandler = _this.mouseDownHandler.bind(_this);
 	    _this.mouseMoveHandler = _this.mouseMoveHandler.bind(_this);
+	    _this.mouseUpHandler = _this.mouseUpHandler.bind(_this);
 	    _this.getCoordinates = _this.getCoordinates.bind(_this);
 	    return _this;
 	  }
@@ -26969,43 +26977,11 @@
 	      window.addEventListener('resize', this.updateCanvas, false);
 	      var ctx = this.refs.canvas.getContext('2d');
 	      ctx.strokeStyle = '#69D2E7';
+	      ctx.lineWidth = 5;
 	      ctx.canvas.addEventListener('touchstart', this.mouseDownHandler, false);
-	      ctx.canvas.addEventListener('mousedown', this.mouseDownHandler, false);
-	
 	      ctx.canvas.addEventListener('touchend', this.mouseUpHandler, false);
 	      ctx.canvas.addEventListener('touchmove', this.mouseMoveHandler, false);
 	    }
-	  }, {
-	    key: 'mouseDownHandler',
-	    value: function mouseDownHandler(e) {
-	      e.preventDefault();
-	      e.stopPropagation();
-	      var ctx = this.refs.canvas.getContext('2d');
-	
-	      var xyCoords = this.getCoordinates(e);
-	      ctx.beginPath();
-	      ctx.moveTo(xyCoords.x, xyCoords.y);
-	      // pixels.push('moveStart');
-	      this.setState({ pixels: ['moveStart'] });
-	      this.setState({ pixels: Object.assign.apply(Object, [{}, this.state.pixels].concat(_toConsumableArray(xyCoords))) });
-	      // pixels.push(xyCoords.x, xyCoords.y);
-	      console.log('xyCoords:', xyCoords);
-	    }
-	  }, {
-	    key: 'mouseMoveHandler',
-	    value: function mouseMoveHandler(e) {
-	      var ctx = this.refs.canvas.getContext('2d');
-	      var xy = this.getCoordinates(e);
-	      console.log('xyCoords mousemove:', xy);
-	      this.setState({ pixels: Object.assign.apply(Object, [{}, this.state.pixels].concat(_toConsumableArray(xy))) });
-	      ctx.lineTo(xy.x, xy.y);
-	      ctx.stroke();
-	      ctx.beginPath();
-	      ctx.moveTo(xy.x, xy.y);
-	    }
-	  }, {
-	    key: 'mouseUpHandler',
-	    value: function mouseUpHandler(e) {}
 	  }, {
 	    key: 'getCoordinates',
 	    value: function getCoordinates(e) {
@@ -27016,8 +26992,43 @@
 	        x = e.changedTouches[0].pageX - ctx.canvas.offsetLeft;
 	        y = e.changedTouches[0].pageY - ctx.canvas.offsetTop;
 	      }
-	      console.log('XY COORDS: ' + x + ' ::: ' + y);
 	      return { x: x, y: y };
+	    }
+	  }, {
+	    key: 'draw',
+	    value: function draw() {
+	      var ctx = this.refs.canvas.getContext('2d');
+	      ctx.beginPath();
+	      ctx.moveTo(this.state.startPos.x, this.state.startPos.y);
+	      ctx.lineTo(this.state.endPos.x, this.state.endPos.y);
+	      ctx.stroke();
+	    }
+	  }, {
+	    key: 'mouseDownHandler',
+	    value: function mouseDownHandler(e) {
+	      e.preventDefault();
+	      e.stopPropagation();
+	      var ctx = this.refs.canvas.getContext('2d');
+	      this.setState({ drawing: true });
+	      var xy = this.getCoordinates(e);
+	      this.setState({ startPos: xy });
+	    }
+	  }, {
+	    key: 'mouseMoveHandler',
+	    value: function mouseMoveHandler(e) {
+	      if (!this.state.drawing) return;
+	      var ctx = this.refs.canvas.getContext('2d');
+	      var xy = this.getCoordinates(e);
+	      console.log('xyCoords start:', this.state.startPos.x, this.state.startPos.y);
+	      console.log('xyCoords end:', xy);
+	      this.setState({ endPos: xy });
+	      this.draw();
+	      this.setState({ startPos: xy });
+	    }
+	  }, {
+	    key: 'mouseUpHandler',
+	    value: function mouseUpHandler() {
+	      this.setState({ drawing: false });
 	    }
 	  }, {
 	    key: 'updateCanvas',
@@ -27101,118 +27112,15 @@
 /* 240 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
-	
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-	
-	var _react = __webpack_require__(1);
-	
-	var _react2 = _interopRequireDefault(_react);
-	
-	var _socket = __webpack_require__(241);
-	
-	var _socket2 = _interopRequireDefault(_socket);
-	
-	__webpack_require__(294);
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-	
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	
-	var HostCanvas = function (_Component) {
-	  _inherits(HostCanvas, _Component);
-	
-	  function HostCanvas(props) {
-	    _classCallCheck(this, HostCanvas);
-	
-	    var _this = _possibleConstructorReturn(this, (HostCanvas.__proto__ || Object.getPrototypeOf(HostCanvas)).call(this, props));
-	
-	    _this.state = {
-	      roomCode: ''
-	    };
-	    return _this;
-	  }
-	
-	  _createClass(HostCanvas, [{
-	    key: 'componentDidMount',
-	    value: function componentDidMount() {
-	      var _this2 = this;
-	
-	      console.log('host mount');
-	      var socket = (0, _socket2.default)();
-	      socket.emit('host-room');
-	      socket.on('host-room-response', function (payload) {
-	        _this2.setState({ roomCode: payload.roomCode });
-	      });
-	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
-	      var width = window.innerWidth - 15;
-	      var height = window.innerHeight - 15;
-	      return _react2.default.createElement(
-	        'div',
-	        { className: 'host-wrapper' },
-	        _react2.default.createElement(
-	          'div',
-	          { className: 'host-canvas-wrapper' },
-	          _react2.default.createElement('canvas', {
-	            className: 'host-canvas', ref: 'canvas', width: width, height: height,
-	            style: { background: 'url("/img/host-bg.png")' }
-	          }),
-	          _react2.default.createElement(
-	            'div',
-	            { className: 'overlay' },
-	            'Join Game at localhost:8888'
-	          ),
-	          _react2.default.createElement(
-	            'div',
-	            { className: 'overlay2' },
-	            'There are X players in current game'
-	          ),
-	          _react2.default.createElement(
-	            'div',
-	            { className: 'overlay3' },
-	            'Room Code: ',
-	            this.state.roomCode
-	          ),
-	          _react2.default.createElement('img', { alt: 'img here' }),
-	          _react2.default.createElement(
-	            'button',
-	            { className: 'btn btn-success start-game-button' },
-	            'START GAME'
-	          )
-	        )
-	      );
-	    }
-	  }]);
-	
-	  return HostCanvas;
-	}(_react.Component);
-	
-	exports.default = HostCanvas;
-
-/***/ },
-/* 241 */
-/***/ function(module, exports, __webpack_require__) {
-
 	
 	/**
 	 * Module dependencies.
 	 */
 	
-	var url = __webpack_require__(242);
-	var parser = __webpack_require__(247);
-	var Manager = __webpack_require__(258);
-	var debug = __webpack_require__(244)('socket.io-client');
+	var url = __webpack_require__(241);
+	var parser = __webpack_require__(246);
+	var Manager = __webpack_require__(257);
+	var debug = __webpack_require__(243)('socket.io-client');
 	
 	/**
 	 * Module exports.
@@ -27311,12 +27219,12 @@
 	 * @api public
 	 */
 	
-	exports.Manager = __webpack_require__(258);
-	exports.Socket = __webpack_require__(288);
+	exports.Manager = __webpack_require__(257);
+	exports.Socket = __webpack_require__(287);
 
 
 /***/ },
-/* 242 */
+/* 241 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -27324,8 +27232,8 @@
 	 * Module dependencies.
 	 */
 	
-	var parseuri = __webpack_require__(243);
-	var debug = __webpack_require__(244)('socket.io-client:url');
+	var parseuri = __webpack_require__(242);
+	var debug = __webpack_require__(243)('socket.io-client:url');
 	
 	/**
 	 * Module exports.
@@ -27398,7 +27306,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 243 */
+/* 242 */
 /***/ function(module, exports) {
 
 	/**
@@ -27443,7 +27351,7 @@
 
 
 /***/ },
-/* 244 */
+/* 243 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {
@@ -27453,7 +27361,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(245);
+	exports = module.exports = __webpack_require__(244);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -27627,7 +27535,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 245 */
+/* 244 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -27643,7 +27551,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(246);
+	exports.humanize = __webpack_require__(245);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -27833,7 +27741,7 @@
 
 
 /***/ },
-/* 246 */
+/* 245 */
 /***/ function(module, exports) {
 
 	/**
@@ -27988,7 +27896,7 @@
 
 
 /***/ },
-/* 247 */
+/* 246 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -27996,11 +27904,11 @@
 	 * Module dependencies.
 	 */
 	
-	var debug = __webpack_require__(248)('socket.io-parser');
-	var json = __webpack_require__(251);
-	var Emitter = __webpack_require__(254);
-	var binary = __webpack_require__(255);
-	var isBuf = __webpack_require__(257);
+	var debug = __webpack_require__(247)('socket.io-parser');
+	var json = __webpack_require__(250);
+	var Emitter = __webpack_require__(253);
+	var binary = __webpack_require__(254);
+	var isBuf = __webpack_require__(256);
 	
 	/**
 	 * Protocol version.
@@ -28398,7 +28306,7 @@
 
 
 /***/ },
-/* 248 */
+/* 247 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -28408,7 +28316,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(249);
+	exports = module.exports = __webpack_require__(248);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -28572,7 +28480,7 @@
 
 
 /***/ },
-/* 249 */
+/* 248 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -28588,7 +28496,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(250);
+	exports.humanize = __webpack_require__(249);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -28775,7 +28683,7 @@
 
 
 /***/ },
-/* 250 */
+/* 249 */
 /***/ function(module, exports) {
 
 	/**
@@ -28906,14 +28814,14 @@
 
 
 /***/ },
-/* 251 */
+/* 250 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 	;(function () {
 	  // Detect the `define` function exposed by asynchronous module loaders. The
 	  // strict `define` check is necessary for compatibility with `r.js`.
-	  var isLoader = "function" === "function" && __webpack_require__(253);
+	  var isLoader = "function" === "function" && __webpack_require__(252);
 	
 	  // A set of types used to distinguish objects from primitives.
 	  var objectTypes = {
@@ -29812,10 +29720,10 @@
 	  }
 	}).call(this);
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(252)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(251)(module), (function() { return this; }())))
 
 /***/ },
-/* 252 */
+/* 251 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -29831,7 +29739,7 @@
 
 
 /***/ },
-/* 253 */
+/* 252 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -29839,7 +29747,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 254 */
+/* 253 */
 /***/ function(module, exports) {
 
 	
@@ -30009,7 +29917,7 @@
 
 
 /***/ },
-/* 255 */
+/* 254 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/*global Blob,File*/
@@ -30018,8 +29926,8 @@
 	 * Module requirements
 	 */
 	
-	var isArray = __webpack_require__(256);
-	var isBuf = __webpack_require__(257);
+	var isArray = __webpack_require__(255);
+	var isBuf = __webpack_require__(256);
 	
 	/**
 	 * Replaces every Buffer | ArrayBuffer in packet with a numbered placeholder.
@@ -30157,7 +30065,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 256 */
+/* 255 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -30166,7 +30074,7 @@
 
 
 /***/ },
-/* 257 */
+/* 256 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -30186,7 +30094,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 258 */
+/* 257 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -30194,15 +30102,15 @@
 	 * Module dependencies.
 	 */
 	
-	var eio = __webpack_require__(259);
-	var Socket = __webpack_require__(288);
-	var Emitter = __webpack_require__(289);
-	var parser = __webpack_require__(247);
-	var on = __webpack_require__(291);
-	var bind = __webpack_require__(292);
-	var debug = __webpack_require__(244)('socket.io-client:manager');
-	var indexOf = __webpack_require__(286);
-	var Backoff = __webpack_require__(293);
+	var eio = __webpack_require__(258);
+	var Socket = __webpack_require__(287);
+	var Emitter = __webpack_require__(288);
+	var parser = __webpack_require__(246);
+	var on = __webpack_require__(290);
+	var bind = __webpack_require__(291);
+	var debug = __webpack_require__(243)('socket.io-client:manager');
+	var indexOf = __webpack_require__(285);
+	var Backoff = __webpack_require__(292);
 	
 	/**
 	 * IE6+ hasOwnProperty
@@ -30752,19 +30660,19 @@
 
 
 /***/ },
+/* 258 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	module.exports = __webpack_require__(259);
+
+
+/***/ },
 /* 259 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
 	module.exports = __webpack_require__(260);
-
-
-/***/ },
-/* 260 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	module.exports = __webpack_require__(261);
 	
 	/**
 	 * Exports parser
@@ -30772,25 +30680,25 @@
 	 * @api public
 	 *
 	 */
-	module.exports.parser = __webpack_require__(268);
+	module.exports.parser = __webpack_require__(267);
 
 
 /***/ },
-/* 261 */
+/* 260 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 	
-	var transports = __webpack_require__(262);
-	var Emitter = __webpack_require__(277);
-	var debug = __webpack_require__(281)('engine.io-client:socket');
-	var index = __webpack_require__(286);
-	var parser = __webpack_require__(268);
-	var parseuri = __webpack_require__(243);
-	var parsejson = __webpack_require__(287);
-	var parseqs = __webpack_require__(278);
+	var transports = __webpack_require__(261);
+	var Emitter = __webpack_require__(276);
+	var debug = __webpack_require__(280)('engine.io-client:socket');
+	var index = __webpack_require__(285);
+	var parser = __webpack_require__(267);
+	var parseuri = __webpack_require__(242);
+	var parsejson = __webpack_require__(286);
+	var parseqs = __webpack_require__(277);
 	
 	/**
 	 * Module exports.
@@ -30922,9 +30830,9 @@
 	 */
 	
 	Socket.Socket = Socket;
-	Socket.Transport = __webpack_require__(267);
-	Socket.transports = __webpack_require__(262);
-	Socket.parser = __webpack_require__(268);
+	Socket.Transport = __webpack_require__(266);
+	Socket.transports = __webpack_require__(261);
+	Socket.parser = __webpack_require__(267);
 	
 	/**
 	 * Creates transport of the given type.
@@ -31521,17 +31429,17 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 262 */
+/* 261 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies
 	 */
 	
-	var XMLHttpRequest = __webpack_require__(263);
-	var XHR = __webpack_require__(265);
-	var JSONP = __webpack_require__(283);
-	var websocket = __webpack_require__(284);
+	var XMLHttpRequest = __webpack_require__(262);
+	var XHR = __webpack_require__(264);
+	var JSONP = __webpack_require__(282);
+	var websocket = __webpack_require__(283);
 	
 	/**
 	 * Export transports.
@@ -31581,12 +31489,12 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 263 */
+/* 262 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {// browser shim for xmlhttprequest module
 	
-	var hasCORS = __webpack_require__(264);
+	var hasCORS = __webpack_require__(263);
 	
 	module.exports = function (opts) {
 	  var xdomain = opts.xdomain;
@@ -31625,7 +31533,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 264 */
+/* 263 */
 /***/ function(module, exports) {
 
 	
@@ -31648,18 +31556,18 @@
 
 
 /***/ },
-/* 265 */
+/* 264 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module requirements.
 	 */
 	
-	var XMLHttpRequest = __webpack_require__(263);
-	var Polling = __webpack_require__(266);
-	var Emitter = __webpack_require__(277);
-	var inherit = __webpack_require__(279);
-	var debug = __webpack_require__(281)('engine.io-client:polling-xhr');
+	var XMLHttpRequest = __webpack_require__(262);
+	var Polling = __webpack_require__(265);
+	var Emitter = __webpack_require__(276);
+	var inherit = __webpack_require__(278);
+	var debug = __webpack_require__(280)('engine.io-client:polling-xhr');
 	
 	/**
 	 * Module exports.
@@ -32079,19 +31987,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 266 */
+/* 265 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 	
-	var Transport = __webpack_require__(267);
-	var parseqs = __webpack_require__(278);
-	var parser = __webpack_require__(268);
-	var inherit = __webpack_require__(279);
-	var yeast = __webpack_require__(280);
-	var debug = __webpack_require__(281)('engine.io-client:polling');
+	var Transport = __webpack_require__(266);
+	var parseqs = __webpack_require__(277);
+	var parser = __webpack_require__(267);
+	var inherit = __webpack_require__(278);
+	var yeast = __webpack_require__(279);
+	var debug = __webpack_require__(280)('engine.io-client:polling');
 	
 	/**
 	 * Module exports.
@@ -32104,7 +32012,7 @@
 	 */
 	
 	var hasXHR2 = (function () {
-	  var XMLHttpRequest = __webpack_require__(263);
+	  var XMLHttpRequest = __webpack_require__(262);
 	  var xhr = new XMLHttpRequest({ xdomain: false });
 	  return null != xhr.responseType;
 	})();
@@ -32330,15 +32238,15 @@
 
 
 /***/ },
-/* 267 */
+/* 266 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 	
-	var parser = __webpack_require__(268);
-	var Emitter = __webpack_require__(277);
+	var parser = __webpack_require__(267);
+	var Emitter = __webpack_require__(276);
 	
 	/**
 	 * Module exports.
@@ -32493,22 +32401,22 @@
 
 
 /***/ },
-/* 268 */
+/* 267 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 	
-	var keys = __webpack_require__(269);
-	var hasBinary = __webpack_require__(270);
-	var sliceBuffer = __webpack_require__(272);
-	var after = __webpack_require__(273);
-	var utf8 = __webpack_require__(274);
+	var keys = __webpack_require__(268);
+	var hasBinary = __webpack_require__(269);
+	var sliceBuffer = __webpack_require__(271);
+	var after = __webpack_require__(272);
+	var utf8 = __webpack_require__(273);
 	
 	var base64encoder;
 	if (global && global.ArrayBuffer) {
-	  base64encoder = __webpack_require__(275);
+	  base64encoder = __webpack_require__(274);
 	}
 	
 	/**
@@ -32566,7 +32474,7 @@
 	 * Create a blob api even for blob builder when vendor prefixes exist
 	 */
 	
-	var Blob = __webpack_require__(276);
+	var Blob = __webpack_require__(275);
 	
 	/**
 	 * Encodes a packet.
@@ -33109,7 +33017,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 269 */
+/* 268 */
 /***/ function(module, exports) {
 
 	
@@ -33134,7 +33042,7 @@
 
 
 /***/ },
-/* 270 */
+/* 269 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -33142,7 +33050,7 @@
 	 * Module requirements.
 	 */
 	
-	var isArray = __webpack_require__(271);
+	var isArray = __webpack_require__(270);
 	
 	/**
 	 * Module exports.
@@ -33200,7 +33108,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 271 */
+/* 270 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -33209,7 +33117,7 @@
 
 
 /***/ },
-/* 272 */
+/* 271 */
 /***/ function(module, exports) {
 
 	/**
@@ -33244,7 +33152,7 @@
 
 
 /***/ },
-/* 273 */
+/* 272 */
 /***/ function(module, exports) {
 
 	module.exports = after
@@ -33278,7 +33186,7 @@
 
 
 /***/ },
-/* 274 */
+/* 273 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/wtf8 v1.0.0 by @mathias */
@@ -33514,10 +33422,10 @@
 	
 	}(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(252)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(251)(module), (function() { return this; }())))
 
 /***/ },
-/* 275 */
+/* 274 */
 /***/ function(module, exports) {
 
 	/*
@@ -33590,7 +33498,7 @@
 
 
 /***/ },
-/* 276 */
+/* 275 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -33693,7 +33601,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 277 */
+/* 276 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -33862,7 +33770,7 @@
 
 
 /***/ },
-/* 278 */
+/* 277 */
 /***/ function(module, exports) {
 
 	/**
@@ -33905,7 +33813,7 @@
 
 
 /***/ },
-/* 279 */
+/* 278 */
 /***/ function(module, exports) {
 
 	
@@ -33917,7 +33825,7 @@
 	};
 
 /***/ },
-/* 280 */
+/* 279 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -33991,7 +33899,7 @@
 
 
 /***/ },
-/* 281 */
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {
@@ -34001,7 +33909,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(282);
+	exports = module.exports = __webpack_require__(281);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -34175,7 +34083,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 282 */
+/* 281 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -34191,7 +34099,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(246);
+	exports.humanize = __webpack_require__(245);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -34381,7 +34289,7 @@
 
 
 /***/ },
-/* 283 */
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -34389,8 +34297,8 @@
 	 * Module requirements.
 	 */
 	
-	var Polling = __webpack_require__(266);
-	var inherit = __webpack_require__(279);
+	var Polling = __webpack_require__(265);
+	var inherit = __webpack_require__(278);
 	
 	/**
 	 * Module exports.
@@ -34619,24 +34527,24 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 284 */
+/* 283 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 	
-	var Transport = __webpack_require__(267);
-	var parser = __webpack_require__(268);
-	var parseqs = __webpack_require__(278);
-	var inherit = __webpack_require__(279);
-	var yeast = __webpack_require__(280);
-	var debug = __webpack_require__(281)('engine.io-client:websocket');
+	var Transport = __webpack_require__(266);
+	var parser = __webpack_require__(267);
+	var parseqs = __webpack_require__(277);
+	var inherit = __webpack_require__(278);
+	var yeast = __webpack_require__(279);
+	var debug = __webpack_require__(280)('engine.io-client:websocket');
 	var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 	var NodeWebSocket;
 	if (typeof window === 'undefined') {
 	  try {
-	    NodeWebSocket = __webpack_require__(285);
+	    NodeWebSocket = __webpack_require__(284);
 	  } catch (e) { }
 	}
 	
@@ -34911,13 +34819,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 285 */
+/* 284 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 286 */
+/* 285 */
 /***/ function(module, exports) {
 
 	
@@ -34932,7 +34840,7 @@
 	};
 
 /***/ },
-/* 287 */
+/* 286 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -34970,7 +34878,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 288 */
+/* 287 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -34978,13 +34886,13 @@
 	 * Module dependencies.
 	 */
 	
-	var parser = __webpack_require__(247);
-	var Emitter = __webpack_require__(289);
-	var toArray = __webpack_require__(290);
-	var on = __webpack_require__(291);
-	var bind = __webpack_require__(292);
-	var debug = __webpack_require__(244)('socket.io-client:socket');
-	var hasBin = __webpack_require__(270);
+	var parser = __webpack_require__(246);
+	var Emitter = __webpack_require__(288);
+	var toArray = __webpack_require__(289);
+	var on = __webpack_require__(290);
+	var bind = __webpack_require__(291);
+	var debug = __webpack_require__(243)('socket.io-client:socket');
+	var hasBin = __webpack_require__(269);
 	
 	/**
 	 * Module exports.
@@ -35395,7 +35303,7 @@
 
 
 /***/ },
-/* 289 */
+/* 288 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -35564,7 +35472,7 @@
 
 
 /***/ },
-/* 290 */
+/* 289 */
 /***/ function(module, exports) {
 
 	module.exports = toArray
@@ -35583,7 +35491,7 @@
 
 
 /***/ },
-/* 291 */
+/* 290 */
 /***/ function(module, exports) {
 
 	
@@ -35613,7 +35521,7 @@
 
 
 /***/ },
-/* 292 */
+/* 291 */
 /***/ function(module, exports) {
 
 	/**
@@ -35642,7 +35550,7 @@
 
 
 /***/ },
-/* 293 */
+/* 292 */
 /***/ function(module, exports) {
 
 	
@@ -35733,6 +35641,109 @@
 
 
 /***/ },
+/* 293 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _react = __webpack_require__(1);
+	
+	var _react2 = _interopRequireDefault(_react);
+	
+	var _socket = __webpack_require__(240);
+	
+	var _socket2 = _interopRequireDefault(_socket);
+	
+	__webpack_require__(294);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var HostCanvas = function (_Component) {
+	  _inherits(HostCanvas, _Component);
+	
+	  function HostCanvas(props) {
+	    _classCallCheck(this, HostCanvas);
+	
+	    var _this = _possibleConstructorReturn(this, (HostCanvas.__proto__ || Object.getPrototypeOf(HostCanvas)).call(this, props));
+	
+	    _this.state = {
+	      roomCode: ''
+	    };
+	    return _this;
+	  }
+	
+	  _createClass(HostCanvas, [{
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      var _this2 = this;
+	
+	      console.log('host mount');
+	      var socket = (0, _socket2.default)();
+	      socket.emit('host-room');
+	      socket.on('host-room-response', function (payload) {
+	        _this2.setState({ roomCode: payload.roomCode });
+	      });
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      var width = window.innerWidth - 15;
+	      var height = window.innerHeight - 15;
+	      return _react2.default.createElement(
+	        'div',
+	        { className: 'host-wrapper' },
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'host-canvas-wrapper' },
+	          _react2.default.createElement('canvas', {
+	            className: 'host-canvas', ref: 'canvas', width: width, height: height,
+	            style: { background: 'url("/img/host-bg.png")' }
+	          }),
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'overlay' },
+	            'Join Game at localhost:8888'
+	          ),
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'overlay2' },
+	            'There are X players in current game'
+	          ),
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'overlay3' },
+	            'Room Code: ',
+	            this.state.roomCode
+	          ),
+	          _react2.default.createElement('img', { alt: 'img here' }),
+	          _react2.default.createElement(
+	            'button',
+	            { className: 'btn btn-success start-game-button' },
+	            'START GAME'
+	          )
+	        )
+	      );
+	    }
+	  }]);
+	
+	  return HostCanvas;
+	}(_react.Component);
+	
+	exports.default = HostCanvas;
+
+/***/ },
 /* 294 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -35788,7 +35799,7 @@
 	
 	var _react2 = _interopRequireDefault(_react);
 	
-	var _socket = __webpack_require__(241);
+	var _socket = __webpack_require__(240);
 	
 	var _socket2 = _interopRequireDefault(_socket);
 	

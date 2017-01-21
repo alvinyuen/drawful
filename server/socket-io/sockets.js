@@ -20,7 +20,10 @@ module.exports = (io) => {
     socket.on('disconnect', () => {
       console.log(`** client has disconnected ${socket.id} **`);
       const index = clients.findIndex(host => host.id === socket.id);
-      clients.splice(index, 1);
+      const disClient = clients.splice(index, 1);
+      if (disClient[0].playerName) {
+        console.log(`[DISCONNECT]: ${disClient[0].playerName} disconnected from the game `);
+      }
     });
 
     socket.on('host-room', () => {
@@ -40,7 +43,7 @@ module.exports = (io) => {
     socket.on('player-join', (payload) => {
       const index = clients.findIndex(host => host.id === socket.id);
       clients[index].isHost = false;
-      clients[index].name = payload.playerName;
+      clients[index].playerName = payload.playerName;
       // search through and see if there is host
       const hostIndex = clients.findIndex(host => host.roomCode === payload.roomCode.toUpperCase() && host.isHost);
 

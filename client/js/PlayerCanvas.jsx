@@ -1,17 +1,25 @@
 import React, { Component } from 'react';
 import './playerCanvas.scss';
+import io from 'socket.io-client';
+
+const socket = io();
 
 export default class PlayerCanvas extends Component {
+
 
   constructor(props) {
     super(props);
     this.state = {
-      pixels: [],
+      imgData: [],
+      startPos: {},
+      endPos: {},
+      drawing: false,
     };
 
     this.updateCanvas = this.updateCanvas.bind(this);
     this.mouseDownHandler = this.mouseDownHandler.bind(this);
     this.mouseMoveHandler = this.mouseMoveHandler.bind(this);
+    this.mouseUpHandler = this.mouseUpHandler.bind(this);
     this.getCoordinates = this.getCoordinates.bind(this);
   }
 
@@ -21,41 +29,10 @@ export default class PlayerCanvas extends Component {
     window.addEventListener('resize', this.updateCanvas, false);
     const ctx = this.refs.canvas.getContext('2d');
     ctx.strokeStyle = '#69D2E7';
+    ctx.lineWidth = 5;
     ctx.canvas.addEventListener('touchstart', this.mouseDownHandler, false);
-    ctx.canvas.addEventListener('mousedown', this.mouseDownHandler, false);
-
     ctx.canvas.addEventListener('touchend', this.mouseUpHandler, false);
     ctx.canvas.addEventListener('touchmove', this.mouseMoveHandler, false);
-  }
-
-  mouseDownHandler(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const ctx = this.refs.canvas.getContext('2d');
-
-
-    const xyCoords = this.getCoordinates(e);
-    ctx.beginPath();
-    ctx.moveTo(xyCoords.x, xyCoords.y);
-    // pixels.push('moveStart');
-    this.setState({ pixels: ['moveStart'] });
-    this.setState({ pixels: Object.assign({}, this.state.pixels, ...xyCoords) });
-    // pixels.push(xyCoords.x, xyCoords.y);
-    console.log('xyCoords:', xyCoords);
-  }
-
-  mouseMoveHandler(e) {
-    const ctx = this.refs.canvas.getContext('2d');
-    const xy = this.getCoordinates(e);
-    console.log('xyCoords mousemove:', xy);
-    this.setState({ pixels: Object.assign({}, this.state.pixels, ...xy) });
-    ctx.lineTo(xy.x, xy.y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(xy.x, xy.y);
-  }
-
-  mouseUpHandler(e) {
   }
 
   getCoordinates(e) {
@@ -66,11 +43,40 @@ export default class PlayerCanvas extends Component {
       x = e.changedTouches[0].pageX - ctx.canvas.offsetLeft;
       y = e.changedTouches[0].pageY - ctx.canvas.offsetTop;
     }
-    console.log(`XY COORDS: ${x} ::: ${y}`);
     return { x, y };
   }
 
+  draw() {
+    const ctx = this.refs.canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(this.state.startPos.x, this.state.startPos.y);
+    ctx.lineTo(this.state.endPos.x, this.state.endPos.y);
+    ctx.stroke();
+  }
 
+  mouseDownHandler(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const ctx = this.refs.canvas.getContext('2d');
+    this.setState({ drawing: true });
+    const xy = this.getCoordinates(e);
+    this.setState({ startPos: xy });
+  }
+
+  mouseMoveHandler(e) {
+    if (!this.state.drawing) return;
+    const ctx = this.refs.canvas.getContext('2d');
+    const xy = this.getCoordinates(e);
+    console.log('xyCoords start:', this.state.startPos.x, this.state.startPos.y);
+    console.log('xyCoords end:', xy);
+    this.setState({ endPos: xy });
+    this.draw();
+    this.setState({ startPos: xy });
+  }
+
+  mouseUpHandler() {
+    this.setState({ drawing: false });
+  }
 
   updateCanvas() {
     console.log('UPDATE CANVAS');
