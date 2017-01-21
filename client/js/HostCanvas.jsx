@@ -14,6 +14,7 @@ export default class HostCanvas extends Component {
   }
 
   componentDidMount() {
+    console.log('host mount');
     const socket = io();
     socket.emit('host-room');
     socket.on('host-room-response', (payload) => {

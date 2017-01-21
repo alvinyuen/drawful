@@ -14,11 +14,13 @@ const clients = [];
 module.exports = (io) => {
 /* client connection */
   io.sockets.on('connection', (socket) => {
-    console.log(`** client has connected ${socket.id} **`);
+    console.log(`** client has connected ${socket.id} - NAME - ${socket.playerName} **`);
     clients.push(socket);
 
-    socket.on('disconnected', () => {
+    socket.on('disconnect', () => {
       console.log(`** client has disconnected ${socket.id} **`);
+      const index = clients.findIndex(host => host.id === socket.id);
+      clients.splice(index, 1);
     });
 
     socket.on('host-room', () => {
@@ -40,17 +42,14 @@ module.exports = (io) => {
       clients[index].isHost = false;
       clients[index].name = payload.playerName;
       // search through and see if there is host
-      const hostIndex = clients.findIndex((host) => {
-        console.log(`[${socket.id}] - FINDING HOST - IS HOST: ${host.isHost}, ${host.roomCode}`);
-        return host.roomCode === payload.roomCode.toUpperCase()
-      && host.isHost;
-      });
+      const hostIndex = clients.findIndex(host => host.roomCode === payload.roomCode.toUpperCase() && host.isHost);
+
       console.log(`[${socket.id}] - PLAYER: FINDING HOST - INDEX: ${hostIndex}, ROOMCODE: ${payload.roomCode.toUpperCase()}`);
       if (hostIndex >= 0) {
         // host found && join room
         socket.join(payload.roomCode);
         clients[hostIndex].playerNum += 1;
-        console.log(`[${socket.id} - PLAYER]: PLAYER JOINED ROOM ${payload.roomCode}`);
+        console.log(`[${socket.id} - PLAYER]: ${payload.playerName} JOINED ROOM ${payload.roomCode}, TOTAL PLAYERS IN ROOM: ${clients[hostIndex].playerNum}`);
         socket.emit('player-join-response', {
           playerNum: clients[hostIndex].playerNum,
         });
