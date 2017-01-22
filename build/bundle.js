@@ -62,7 +62,7 @@
 	
 	var _PlayerCanvas2 = _interopRequireDefault(_PlayerCanvas);
 	
-	var _HostCanvas = __webpack_require__(293);
+	var _HostCanvas = __webpack_require__(240);
 	
 	var _HostCanvas2 = _interopRequireDefault(_HostCanvas);
 	
@@ -93,7 +93,7 @@
 	      { path: '/' },
 	      _react2.default.createElement(_reactRouter.Route, { path: 'host', component: _HostCanvas2.default }),
 	      _react2.default.createElement(_reactRouter.Route, { path: 'playerJoin', component: _PlayerJoin2.default }),
-	      _react2.default.createElement(_reactRouter.Route, { path: 'player', component: _PlayerCanvas2.default })
+	      _react2.default.createElement(_reactRouter.Route, { path: 'player/:playerNum', component: _PlayerCanvas2.default })
 	    )
 	  );
 	};
@@ -26932,9 +26932,7 @@
 	
 	__webpack_require__(238);
 	
-	var _socket = __webpack_require__(240);
-	
-	var _socket2 = _interopRequireDefault(_socket);
+	var _HostCanvas = __webpack_require__(240);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -26944,7 +26942,7 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 	
-	var socket = (0, _socket2.default)();
+	var hexColors = ['#1abc9c', '#f39c12', '#f1c40f', '#16a085', '#2ecc71', '#d35400', '#e67e22', '#27ae60', '#3498db', '#c0392b', '#2980b9', '#e74c3c', '#2c3e50', '#7f8c8d', '#9b59b6', '#34495e', '#3E4651', '3b5999', 'cd201f', '02b875', '007ee5', '3aaf85'];
 	
 	var PlayerCanvas = function (_Component) {
 	  _inherits(PlayerCanvas, _Component);
@@ -26955,10 +26953,16 @@
 	    var _this = _possibleConstructorReturn(this, (PlayerCanvas.__proto__ || Object.getPrototypeOf(PlayerCanvas)).call(this, props));
 	
 	    _this.state = {
-	      imgData: [],
+	      imgData: {},
 	      startPos: {},
 	      endPos: {},
-	      drawing: false
+	      drawing: false,
+	      canvasWidth: window.innerWidth,
+	      canvasHeight: window.innerWidth,
+	      name: ' ',
+	      message: '',
+	      avatarMenu: true,
+	      keywordMenu: false
 	    };
 	
 	    _this.updateCanvas = _this.updateCanvas.bind(_this);
@@ -26966,21 +26970,33 @@
 	    _this.mouseMoveHandler = _this.mouseMoveHandler.bind(_this);
 	    _this.mouseUpHandler = _this.mouseUpHandler.bind(_this);
 	    _this.getCoordinates = _this.getCoordinates.bind(_this);
+	    _this.submitAvatar = _this.submitAvatar.bind(_this);
+	    _this.submitDrawing = _this.submitDrawing.bind(_this);
 	    return _this;
 	  }
 	
 	  _createClass(PlayerCanvas, [{
 	    key: 'componentDidMount',
 	    value: function componentDidMount() {
+	      var _this2 = this;
+	
 	      this.updateCanvas();
 	      /* adds a event listener to listen for any browser resizing */
 	      window.addEventListener('resize', this.updateCanvas, false);
 	      var ctx = this.refs.canvas.getContext('2d');
-	      ctx.strokeStyle = '#69D2E7';
-	      ctx.lineWidth = 5;
+	      ctx.strokeStyle = hexColors[this.props.routeParams.playerNum];
+	      ctx.lineWidth = 7;
 	      ctx.canvas.addEventListener('touchstart', this.mouseDownHandler, false);
 	      ctx.canvas.addEventListener('touchend', this.mouseUpHandler, false);
 	      ctx.canvas.addEventListener('touchmove', this.mouseMoveHandler, false);
+	
+	      /* sockets */
+	      _HostCanvas.socket.on('send-keyword', function (_ref) {
+	        var keyword = _ref.keyword;
+	
+	        console.log('KEYWORD IS:', keyword);
+	        _this2.setState({ message: keyword });
+	      });
 	    }
 	  }, {
 	    key: 'getCoordinates',
@@ -27035,8 +27051,24 @@
 	    value: function updateCanvas() {
 	      console.log('UPDATE CANVAS');
 	      var ctx = this.refs.canvas.getContext('2d');
-	      ctx.canvas.width = window.innerWidth;
-	      ctx.canvas.height = window.innerHeight - 50;
+	      ctx.canvas.width = this.state.canvasWidth;
+	      ctx.canvas.height = this.state.canvasHeight;
+	    }
+	  }, {
+	    key: 'submitAvatar',
+	    value: function submitAvatar() {
+	      var ctx = this.refs.canvas.getContext('2d');
+	      var avatar = this.refs.canvas.toDataURL();
+	      _HostCanvas.socket.emit('save-avatar', { avatar: avatar });
+	      this.setState({ avatarMenu: false });
+	      this.setState({ keywordMenu: true });
+	      ctx.clearRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+	    }
+	  }, {
+	    key: 'submitDrawing',
+	    value: function submitDrawing() {
+	      var drawing = this.refs.canvas.toDataURL();
+	      _HostCanvas.socket.emit('submit-drawing', { drawing: drawing });
 	    }
 	  }, {
 	    key: 'render',
@@ -27047,17 +27079,34 @@
 	        _react2.default.createElement(
 	          'div',
 	          { className: 'player-message-container' },
-	          'Player Name however long they want'
+	          this.state.name
 	        ),
 	        _react2.default.createElement(
 	          'div',
 	          { className: 'player-prompt-container' },
-	          ' Prompt Message for player instructions '
+	          ' ',
+	          this.state.message,
+	          ' '
 	        ),
 	        _react2.default.createElement(
 	          'div',
 	          { className: 'player-canvas-wrapper' },
 	          _react2.default.createElement('canvas', { className: 'player-canvas', ref: 'canvas' })
+	        ),
+	        this.state.avatarMenu ? _react2.default.createElement(
+	          'button',
+	          {
+	            className: 'player-canvas-button',
+	            onTouchStart: this.submitAvatar
+	          },
+	          ' Submit Avatar '
+	        ) : _react2.default.createElement(
+	          'button',
+	          {
+	            className: 'player-canvas-button',
+	            onTouchStart: this.submitDrawing
+	          },
+	          ' Submit Drawing '
 	        )
 	      );
 	    }
@@ -27112,15 +27161,219 @@
 /* 240 */
 /***/ function(module, exports, __webpack_require__) {
 
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.socket = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _react = __webpack_require__(1);
+	
+	var _react2 = _interopRequireDefault(_react);
+	
+	var _socket = __webpack_require__(241);
+	
+	var _socket2 = _interopRequireDefault(_socket);
+	
+	__webpack_require__(294);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var socket = exports.socket = (0, _socket2.default)();
+	
+	var hexColors = ['#1abc9c', '#f39c12', '#f1c40f', '#16a085', '#2ecc71', '#d35400', '#e67e22', '#27ae60', '#3498db', '#c0392b', '#2980b9', '#e74c3c', '#2c3e50', '#7f8c8d', '#9b59b6', '#34495e', '#3E4651', '3b5999', 'cd201f', '02b875', '007ee5', '3aaf85'];
+	
+	var HostCanvas = function (_Component) {
+	  _inherits(HostCanvas, _Component);
+	
+	  function HostCanvas(props) {
+	    _classCallCheck(this, HostCanvas);
+	
+	    var _this = _possibleConstructorReturn(this, (HostCanvas.__proto__ || Object.getPrototypeOf(HostCanvas)).call(this, props));
+	
+	    _this.state = {
+	      roomCode: '',
+	      mainMenu: true,
+	      timerMenu: false,
+	      dipMenu: false,
+	      timer: 0
+	    };
+	    _this.startGame = _this.startGame.bind(_this);
+	    return _this;
+	  }
+	
+	  _createClass(HostCanvas, [{
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      var _this2 = this;
+	
+	      console.log('host mount');
+	
+	      /* socket */
+	      var socket = (0, _socket2.default)();
+	      socket.emit('host-room');
+	      socket.on('host-room-response', function (payload) {
+	        _this2.setState({ roomCode: payload.roomCode });
+	      });
+	
+	      socket.on('save-avatar-response', function (payload) {
+	        console.log('RECEIVE PLAYER NAME', payload.playerName);
+	        var ctx = _this2.refs.canvas.getContext('2d');
+	        var avatarImg = new Image();
+	        avatarImg.src = payload.avatar.avatar;
+	        avatarImg.onload = function () {
+	          console.log('ONLOAD');
+	          ctx.font = '30px Open Sans';
+	          // load avatar position based on player number
+	          switch (payload.playerNum) {
+	            case 1:
+	              ctx.drawImage(avatarImg, 100, 100, 200, 200);
+	              ctx.fillStyle = hexColors[payload.playerNum];
+	              ctx.fillText(payload.playerName.toUpperCase(), 100, 100);
+	              break;
+	            case 2:
+	              ctx.drawImage(avatarImg, 100, 200, 200, 200);
+	              ctx.fillStyle = hexColors[payload.playerNum];
+	              ctx.fillText(payload.playerName.toUpperCase(), 100, 200);
+	              break;
+	            case 3:
+	              ctx.drawImage(avatarImg, 100, 300, 200, 200);
+	              ctx.fillStyle = hexColors[payload.playerNum];
+	              ctx.fillText(payload.playerName.toUpperCase(), 100, 300);
+	              break;
+	            case 4:
+	              ctx.drawImage(avatarImg, 100, 400, 200, 200);
+	              ctx.fillStyle = hexColors[payload.playerNum];
+	              ctx.fillText(payload.playerName.toUpperCase(), 100, 400);
+	              break;
+	            case 5:
+	              ctx.drawImage(avatarImg, 100, 500, 200, 200);
+	              ctx.fillStyle = hexColors[payload.playerNum];
+	              ctx.fillText(payload.playerName.toUpperCase(), 100, 500);
+	              break;
+	            default:
+	              break;
+	          }
+	        };
+	      });
+	
+	      socket.on('round-one', function () {
+	        console.log('initiating rounds');
+	      });
+	
+	      // keywords sent, start timer
+	      socket.on('keywords-sent', function () {
+	        console.log('STARTING TIMER ON HOST');
+	        _this2.setState({ mainMenu: false });
+	        _this2.setState({ dipMenu: true });
+	        _this2.setState({ timer: 30 });
+	        var timerInt = setInterval(function () {
+	          _this2.setState({ timer: _this2.state.timer - 1 });
+	        }, 1000);
+	
+	        setTimeout(function () {
+	          clearInterval(timerInt);
+	          _this2.setState({ dipMenu: false });
+	          socket.emit('start-rounds');
+	        }, 30000);
+	      });
+	    }
+	  }, {
+	    key: 'startGame',
+	    value: function startGame() {
+	      socket.emit('start-game', { roomCode: this.state.roomCode });
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      var width = window.innerWidth - 15;
+	      var height = window.innerHeight - 15;
+	      return _react2.default.createElement(
+	        'div',
+	        { className: 'host-wrapper' },
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'host-canvas-wrapper' },
+	          _react2.default.createElement('canvas', {
+	            className: 'host-canvas', ref: 'canvas', width: width, height: height
+	          }),
+	          this.state.mainMenu ? _react2.default.createElement(
+	            'div',
+	            null,
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'overlay' },
+	              'Join Game at localhost:8888'
+	            ),
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'overlay2' },
+	              'There are X players in current game'
+	            ),
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'overlay3' },
+	              'Room Code: ',
+	              this.state.roomCode
+	            ),
+	            _react2.default.createElement('img', { alt: 'img here' }),
+	            _react2.default.createElement(
+	              'button',
+	              { onClick: this.startGame, className: 'btn btn-success start-game-button' },
+	              'START GAME'
+	            )
+	          ) : null,
+	          this.state.dipMenu ? _react2.default.createElement(
+	            'div',
+	            null,
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'overlay' },
+	              ' Time to Draw ! '
+	            ),
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'overlay2' },
+	              ' ',
+	              this.state.timer,
+	              ' '
+	            )
+	          ) : null
+	        )
+	      );
+	    }
+	  }]);
+	
+	  return HostCanvas;
+	}(_react.Component);
+	
+	//  style={{ background: 'url("/img/host-bg.png")' }}
+	
+	
+	exports.default = HostCanvas;
+
+/***/ },
+/* 241 */
+/***/ function(module, exports, __webpack_require__) {
+
 	
 	/**
 	 * Module dependencies.
 	 */
 	
-	var url = __webpack_require__(241);
-	var parser = __webpack_require__(246);
-	var Manager = __webpack_require__(257);
-	var debug = __webpack_require__(243)('socket.io-client');
+	var url = __webpack_require__(242);
+	var parser = __webpack_require__(247);
+	var Manager = __webpack_require__(258);
+	var debug = __webpack_require__(244)('socket.io-client');
 	
 	/**
 	 * Module exports.
@@ -27219,12 +27472,12 @@
 	 * @api public
 	 */
 	
-	exports.Manager = __webpack_require__(257);
-	exports.Socket = __webpack_require__(287);
+	exports.Manager = __webpack_require__(258);
+	exports.Socket = __webpack_require__(288);
 
 
 /***/ },
-/* 241 */
+/* 242 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -27232,8 +27485,8 @@
 	 * Module dependencies.
 	 */
 	
-	var parseuri = __webpack_require__(242);
-	var debug = __webpack_require__(243)('socket.io-client:url');
+	var parseuri = __webpack_require__(243);
+	var debug = __webpack_require__(244)('socket.io-client:url');
 	
 	/**
 	 * Module exports.
@@ -27306,7 +27559,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 242 */
+/* 243 */
 /***/ function(module, exports) {
 
 	/**
@@ -27351,7 +27604,7 @@
 
 
 /***/ },
-/* 243 */
+/* 244 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {
@@ -27361,7 +27614,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(244);
+	exports = module.exports = __webpack_require__(245);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -27535,7 +27788,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 244 */
+/* 245 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -27551,7 +27804,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(245);
+	exports.humanize = __webpack_require__(246);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -27741,7 +27994,7 @@
 
 
 /***/ },
-/* 245 */
+/* 246 */
 /***/ function(module, exports) {
 
 	/**
@@ -27896,7 +28149,7 @@
 
 
 /***/ },
-/* 246 */
+/* 247 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -27904,11 +28157,11 @@
 	 * Module dependencies.
 	 */
 	
-	var debug = __webpack_require__(247)('socket.io-parser');
-	var json = __webpack_require__(250);
-	var Emitter = __webpack_require__(253);
-	var binary = __webpack_require__(254);
-	var isBuf = __webpack_require__(256);
+	var debug = __webpack_require__(248)('socket.io-parser');
+	var json = __webpack_require__(251);
+	var Emitter = __webpack_require__(254);
+	var binary = __webpack_require__(255);
+	var isBuf = __webpack_require__(257);
 	
 	/**
 	 * Protocol version.
@@ -28306,7 +28559,7 @@
 
 
 /***/ },
-/* 247 */
+/* 248 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -28316,7 +28569,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(248);
+	exports = module.exports = __webpack_require__(249);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -28480,7 +28733,7 @@
 
 
 /***/ },
-/* 248 */
+/* 249 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -28496,7 +28749,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(249);
+	exports.humanize = __webpack_require__(250);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -28683,7 +28936,7 @@
 
 
 /***/ },
-/* 249 */
+/* 250 */
 /***/ function(module, exports) {
 
 	/**
@@ -28814,14 +29067,14 @@
 
 
 /***/ },
-/* 250 */
+/* 251 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 	;(function () {
 	  // Detect the `define` function exposed by asynchronous module loaders. The
 	  // strict `define` check is necessary for compatibility with `r.js`.
-	  var isLoader = "function" === "function" && __webpack_require__(252);
+	  var isLoader = "function" === "function" && __webpack_require__(253);
 	
 	  // A set of types used to distinguish objects from primitives.
 	  var objectTypes = {
@@ -29720,10 +29973,10 @@
 	  }
 	}).call(this);
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(251)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(252)(module), (function() { return this; }())))
 
 /***/ },
-/* 251 */
+/* 252 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -29739,7 +29992,7 @@
 
 
 /***/ },
-/* 252 */
+/* 253 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -29747,7 +30000,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 253 */
+/* 254 */
 /***/ function(module, exports) {
 
 	
@@ -29917,7 +30170,7 @@
 
 
 /***/ },
-/* 254 */
+/* 255 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/*global Blob,File*/
@@ -29926,8 +30179,8 @@
 	 * Module requirements
 	 */
 	
-	var isArray = __webpack_require__(255);
-	var isBuf = __webpack_require__(256);
+	var isArray = __webpack_require__(256);
+	var isBuf = __webpack_require__(257);
 	
 	/**
 	 * Replaces every Buffer | ArrayBuffer in packet with a numbered placeholder.
@@ -30065,7 +30318,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 255 */
+/* 256 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -30074,7 +30327,7 @@
 
 
 /***/ },
-/* 256 */
+/* 257 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -30094,7 +30347,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 257 */
+/* 258 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -30102,15 +30355,15 @@
 	 * Module dependencies.
 	 */
 	
-	var eio = __webpack_require__(258);
-	var Socket = __webpack_require__(287);
-	var Emitter = __webpack_require__(288);
-	var parser = __webpack_require__(246);
-	var on = __webpack_require__(290);
-	var bind = __webpack_require__(291);
-	var debug = __webpack_require__(243)('socket.io-client:manager');
-	var indexOf = __webpack_require__(285);
-	var Backoff = __webpack_require__(292);
+	var eio = __webpack_require__(259);
+	var Socket = __webpack_require__(288);
+	var Emitter = __webpack_require__(289);
+	var parser = __webpack_require__(247);
+	var on = __webpack_require__(291);
+	var bind = __webpack_require__(292);
+	var debug = __webpack_require__(244)('socket.io-client:manager');
+	var indexOf = __webpack_require__(286);
+	var Backoff = __webpack_require__(293);
 	
 	/**
 	 * IE6+ hasOwnProperty
@@ -30660,19 +30913,19 @@
 
 
 /***/ },
-/* 258 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	module.exports = __webpack_require__(259);
-
-
-/***/ },
 /* 259 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
 	module.exports = __webpack_require__(260);
+
+
+/***/ },
+/* 260 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	module.exports = __webpack_require__(261);
 	
 	/**
 	 * Exports parser
@@ -30680,25 +30933,25 @@
 	 * @api public
 	 *
 	 */
-	module.exports.parser = __webpack_require__(267);
+	module.exports.parser = __webpack_require__(268);
 
 
 /***/ },
-/* 260 */
+/* 261 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 	
-	var transports = __webpack_require__(261);
-	var Emitter = __webpack_require__(276);
-	var debug = __webpack_require__(280)('engine.io-client:socket');
-	var index = __webpack_require__(285);
-	var parser = __webpack_require__(267);
-	var parseuri = __webpack_require__(242);
-	var parsejson = __webpack_require__(286);
-	var parseqs = __webpack_require__(277);
+	var transports = __webpack_require__(262);
+	var Emitter = __webpack_require__(277);
+	var debug = __webpack_require__(281)('engine.io-client:socket');
+	var index = __webpack_require__(286);
+	var parser = __webpack_require__(268);
+	var parseuri = __webpack_require__(243);
+	var parsejson = __webpack_require__(287);
+	var parseqs = __webpack_require__(278);
 	
 	/**
 	 * Module exports.
@@ -30830,9 +31083,9 @@
 	 */
 	
 	Socket.Socket = Socket;
-	Socket.Transport = __webpack_require__(266);
-	Socket.transports = __webpack_require__(261);
-	Socket.parser = __webpack_require__(267);
+	Socket.Transport = __webpack_require__(267);
+	Socket.transports = __webpack_require__(262);
+	Socket.parser = __webpack_require__(268);
 	
 	/**
 	 * Creates transport of the given type.
@@ -31429,17 +31682,17 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 261 */
+/* 262 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies
 	 */
 	
-	var XMLHttpRequest = __webpack_require__(262);
-	var XHR = __webpack_require__(264);
-	var JSONP = __webpack_require__(282);
-	var websocket = __webpack_require__(283);
+	var XMLHttpRequest = __webpack_require__(263);
+	var XHR = __webpack_require__(265);
+	var JSONP = __webpack_require__(283);
+	var websocket = __webpack_require__(284);
 	
 	/**
 	 * Export transports.
@@ -31489,12 +31742,12 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 262 */
+/* 263 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {// browser shim for xmlhttprequest module
 	
-	var hasCORS = __webpack_require__(263);
+	var hasCORS = __webpack_require__(264);
 	
 	module.exports = function (opts) {
 	  var xdomain = opts.xdomain;
@@ -31533,7 +31786,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 263 */
+/* 264 */
 /***/ function(module, exports) {
 
 	
@@ -31556,18 +31809,18 @@
 
 
 /***/ },
-/* 264 */
+/* 265 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module requirements.
 	 */
 	
-	var XMLHttpRequest = __webpack_require__(262);
-	var Polling = __webpack_require__(265);
-	var Emitter = __webpack_require__(276);
-	var inherit = __webpack_require__(278);
-	var debug = __webpack_require__(280)('engine.io-client:polling-xhr');
+	var XMLHttpRequest = __webpack_require__(263);
+	var Polling = __webpack_require__(266);
+	var Emitter = __webpack_require__(277);
+	var inherit = __webpack_require__(279);
+	var debug = __webpack_require__(281)('engine.io-client:polling-xhr');
 	
 	/**
 	 * Module exports.
@@ -31987,19 +32240,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 265 */
+/* 266 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 	
-	var Transport = __webpack_require__(266);
-	var parseqs = __webpack_require__(277);
-	var parser = __webpack_require__(267);
-	var inherit = __webpack_require__(278);
-	var yeast = __webpack_require__(279);
-	var debug = __webpack_require__(280)('engine.io-client:polling');
+	var Transport = __webpack_require__(267);
+	var parseqs = __webpack_require__(278);
+	var parser = __webpack_require__(268);
+	var inherit = __webpack_require__(279);
+	var yeast = __webpack_require__(280);
+	var debug = __webpack_require__(281)('engine.io-client:polling');
 	
 	/**
 	 * Module exports.
@@ -32012,7 +32265,7 @@
 	 */
 	
 	var hasXHR2 = (function () {
-	  var XMLHttpRequest = __webpack_require__(262);
+	  var XMLHttpRequest = __webpack_require__(263);
 	  var xhr = new XMLHttpRequest({ xdomain: false });
 	  return null != xhr.responseType;
 	})();
@@ -32238,15 +32491,15 @@
 
 
 /***/ },
-/* 266 */
+/* 267 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 	
-	var parser = __webpack_require__(267);
-	var Emitter = __webpack_require__(276);
+	var parser = __webpack_require__(268);
+	var Emitter = __webpack_require__(277);
 	
 	/**
 	 * Module exports.
@@ -32401,22 +32654,22 @@
 
 
 /***/ },
-/* 267 */
+/* 268 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 	
-	var keys = __webpack_require__(268);
-	var hasBinary = __webpack_require__(269);
-	var sliceBuffer = __webpack_require__(271);
-	var after = __webpack_require__(272);
-	var utf8 = __webpack_require__(273);
+	var keys = __webpack_require__(269);
+	var hasBinary = __webpack_require__(270);
+	var sliceBuffer = __webpack_require__(272);
+	var after = __webpack_require__(273);
+	var utf8 = __webpack_require__(274);
 	
 	var base64encoder;
 	if (global && global.ArrayBuffer) {
-	  base64encoder = __webpack_require__(274);
+	  base64encoder = __webpack_require__(275);
 	}
 	
 	/**
@@ -32474,7 +32727,7 @@
 	 * Create a blob api even for blob builder when vendor prefixes exist
 	 */
 	
-	var Blob = __webpack_require__(275);
+	var Blob = __webpack_require__(276);
 	
 	/**
 	 * Encodes a packet.
@@ -33017,7 +33270,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 268 */
+/* 269 */
 /***/ function(module, exports) {
 
 	
@@ -33042,7 +33295,7 @@
 
 
 /***/ },
-/* 269 */
+/* 270 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -33050,7 +33303,7 @@
 	 * Module requirements.
 	 */
 	
-	var isArray = __webpack_require__(270);
+	var isArray = __webpack_require__(271);
 	
 	/**
 	 * Module exports.
@@ -33108,7 +33361,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 270 */
+/* 271 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -33117,7 +33370,7 @@
 
 
 /***/ },
-/* 271 */
+/* 272 */
 /***/ function(module, exports) {
 
 	/**
@@ -33152,7 +33405,7 @@
 
 
 /***/ },
-/* 272 */
+/* 273 */
 /***/ function(module, exports) {
 
 	module.exports = after
@@ -33186,7 +33439,7 @@
 
 
 /***/ },
-/* 273 */
+/* 274 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/wtf8 v1.0.0 by @mathias */
@@ -33422,10 +33675,10 @@
 	
 	}(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(251)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(252)(module), (function() { return this; }())))
 
 /***/ },
-/* 274 */
+/* 275 */
 /***/ function(module, exports) {
 
 	/*
@@ -33498,7 +33751,7 @@
 
 
 /***/ },
-/* 275 */
+/* 276 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -33601,7 +33854,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 276 */
+/* 277 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -33770,7 +34023,7 @@
 
 
 /***/ },
-/* 277 */
+/* 278 */
 /***/ function(module, exports) {
 
 	/**
@@ -33813,7 +34066,7 @@
 
 
 /***/ },
-/* 278 */
+/* 279 */
 /***/ function(module, exports) {
 
 	
@@ -33825,7 +34078,7 @@
 	};
 
 /***/ },
-/* 279 */
+/* 280 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -33899,7 +34152,7 @@
 
 
 /***/ },
-/* 280 */
+/* 281 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {
@@ -33909,7 +34162,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(281);
+	exports = module.exports = __webpack_require__(282);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -34083,7 +34336,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 281 */
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -34099,7 +34352,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(245);
+	exports.humanize = __webpack_require__(246);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -34289,7 +34542,7 @@
 
 
 /***/ },
-/* 282 */
+/* 283 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -34297,8 +34550,8 @@
 	 * Module requirements.
 	 */
 	
-	var Polling = __webpack_require__(265);
-	var inherit = __webpack_require__(278);
+	var Polling = __webpack_require__(266);
+	var inherit = __webpack_require__(279);
 	
 	/**
 	 * Module exports.
@@ -34527,24 +34780,24 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 283 */
+/* 284 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 	
-	var Transport = __webpack_require__(266);
-	var parser = __webpack_require__(267);
-	var parseqs = __webpack_require__(277);
-	var inherit = __webpack_require__(278);
-	var yeast = __webpack_require__(279);
-	var debug = __webpack_require__(280)('engine.io-client:websocket');
+	var Transport = __webpack_require__(267);
+	var parser = __webpack_require__(268);
+	var parseqs = __webpack_require__(278);
+	var inherit = __webpack_require__(279);
+	var yeast = __webpack_require__(280);
+	var debug = __webpack_require__(281)('engine.io-client:websocket');
 	var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 	var NodeWebSocket;
 	if (typeof window === 'undefined') {
 	  try {
-	    NodeWebSocket = __webpack_require__(284);
+	    NodeWebSocket = __webpack_require__(285);
 	  } catch (e) { }
 	}
 	
@@ -34819,13 +35072,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 284 */
+/* 285 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 285 */
+/* 286 */
 /***/ function(module, exports) {
 
 	
@@ -34840,7 +35093,7 @@
 	};
 
 /***/ },
-/* 286 */
+/* 287 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -34878,7 +35131,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 287 */
+/* 288 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -34886,13 +35139,13 @@
 	 * Module dependencies.
 	 */
 	
-	var parser = __webpack_require__(246);
-	var Emitter = __webpack_require__(288);
-	var toArray = __webpack_require__(289);
-	var on = __webpack_require__(290);
-	var bind = __webpack_require__(291);
-	var debug = __webpack_require__(243)('socket.io-client:socket');
-	var hasBin = __webpack_require__(269);
+	var parser = __webpack_require__(247);
+	var Emitter = __webpack_require__(289);
+	var toArray = __webpack_require__(290);
+	var on = __webpack_require__(291);
+	var bind = __webpack_require__(292);
+	var debug = __webpack_require__(244)('socket.io-client:socket');
+	var hasBin = __webpack_require__(270);
 	
 	/**
 	 * Module exports.
@@ -35303,7 +35556,7 @@
 
 
 /***/ },
-/* 288 */
+/* 289 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -35472,7 +35725,7 @@
 
 
 /***/ },
-/* 289 */
+/* 290 */
 /***/ function(module, exports) {
 
 	module.exports = toArray
@@ -35491,7 +35744,7 @@
 
 
 /***/ },
-/* 290 */
+/* 291 */
 /***/ function(module, exports) {
 
 	
@@ -35521,7 +35774,7 @@
 
 
 /***/ },
-/* 291 */
+/* 292 */
 /***/ function(module, exports) {
 
 	/**
@@ -35550,7 +35803,7 @@
 
 
 /***/ },
-/* 292 */
+/* 293 */
 /***/ function(module, exports) {
 
 	
@@ -35641,109 +35894,6 @@
 
 
 /***/ },
-/* 293 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-	
-	var _react = __webpack_require__(1);
-	
-	var _react2 = _interopRequireDefault(_react);
-	
-	var _socket = __webpack_require__(240);
-	
-	var _socket2 = _interopRequireDefault(_socket);
-	
-	__webpack_require__(294);
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-	
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	
-	var HostCanvas = function (_Component) {
-	  _inherits(HostCanvas, _Component);
-	
-	  function HostCanvas(props) {
-	    _classCallCheck(this, HostCanvas);
-	
-	    var _this = _possibleConstructorReturn(this, (HostCanvas.__proto__ || Object.getPrototypeOf(HostCanvas)).call(this, props));
-	
-	    _this.state = {
-	      roomCode: ''
-	    };
-	    return _this;
-	  }
-	
-	  _createClass(HostCanvas, [{
-	    key: 'componentDidMount',
-	    value: function componentDidMount() {
-	      var _this2 = this;
-	
-	      console.log('host mount');
-	      var socket = (0, _socket2.default)();
-	      socket.emit('host-room');
-	      socket.on('host-room-response', function (payload) {
-	        _this2.setState({ roomCode: payload.roomCode });
-	      });
-	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
-	      var width = window.innerWidth - 15;
-	      var height = window.innerHeight - 15;
-	      return _react2.default.createElement(
-	        'div',
-	        { className: 'host-wrapper' },
-	        _react2.default.createElement(
-	          'div',
-	          { className: 'host-canvas-wrapper' },
-	          _react2.default.createElement('canvas', {
-	            className: 'host-canvas', ref: 'canvas', width: width, height: height,
-	            style: { background: 'url("/img/host-bg.png")' }
-	          }),
-	          _react2.default.createElement(
-	            'div',
-	            { className: 'overlay' },
-	            'Join Game at localhost:8888'
-	          ),
-	          _react2.default.createElement(
-	            'div',
-	            { className: 'overlay2' },
-	            'There are X players in current game'
-	          ),
-	          _react2.default.createElement(
-	            'div',
-	            { className: 'overlay3' },
-	            'Room Code: ',
-	            this.state.roomCode
-	          ),
-	          _react2.default.createElement('img', { alt: 'img here' }),
-	          _react2.default.createElement(
-	            'button',
-	            { className: 'btn btn-success start-game-button' },
-	            'START GAME'
-	          )
-	        )
-	      );
-	    }
-	  }]);
-	
-	  return HostCanvas;
-	}(_react.Component);
-	
-	exports.default = HostCanvas;
-
-/***/ },
 /* 294 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -35799,9 +35949,7 @@
 	
 	var _react2 = _interopRequireDefault(_react);
 	
-	var _socket = __webpack_require__(240);
-	
-	var _socket2 = _interopRequireDefault(_socket);
+	var _HostCanvas = __webpack_require__(240);
 	
 	var _reactRouter = __webpack_require__(178);
 	
@@ -35816,8 +35964,6 @@
 	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	
-	var socket = (0, _socket2.default)();
 	
 	var playerJoin = function (_Component) {
 	  _inherits(playerJoin, _Component);
@@ -35844,12 +35990,11 @@
 	  }, {
 	    key: 'joinRoom',
 	    value: function joinRoom() {
-	      socket.emit('player-join', { roomCode: this.state.roomCode, playerName: this.state.playerName });
-	      socket.on('player-join-response', function (payload) {
-	        console.log('[CLIENT] player created:', payload);
+	      _HostCanvas.socket.emit('player-join', { roomCode: this.state.roomCode, playerName: this.state.playerName });
+	      _HostCanvas.socket.on('player-join-response', function (payload) {
 	        /* direct to players in-game canvas page */
 	        if (payload.playerNum) {
-	          _reactRouter.browserHistory.push('/player');
+	          _reactRouter.browserHistory.push('/player/' + payload.playerNum);
 	        }
 	      });
 	    }

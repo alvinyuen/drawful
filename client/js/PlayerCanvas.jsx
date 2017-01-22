@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import './playerCanvas.scss';
-import io from 'socket.io-client';
+import { socket } from './HostCanvas.jsx';
 
-const socket = io();
+const hexColors = ['#1abc9c', '#f39c12', '#f1c40f', '#16a085', '#2ecc71', '#d35400', '#e67e22', '#27ae60', '#3498db', '#c0392b', '#2980b9', '#e74c3c', '#2c3e50', '#7f8c8d', '#9b59b6', '#34495e', '#3E4651', '3b5999', 'cd201f', '02b875', '007ee5', '3aaf85'];
 
 export default class PlayerCanvas extends Component {
 
@@ -10,10 +10,16 @@ export default class PlayerCanvas extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      imgData: [],
+      imgData: {},
       startPos: {},
       endPos: {},
       drawing: false,
+      canvasWidth: window.innerWidth,
+      canvasHeight: window.innerWidth,
+      name: ' ',
+      message: '',
+      avatarMenu: true,
+      keywordMenu: false,
     };
 
     this.updateCanvas = this.updateCanvas.bind(this);
@@ -21,6 +27,8 @@ export default class PlayerCanvas extends Component {
     this.mouseMoveHandler = this.mouseMoveHandler.bind(this);
     this.mouseUpHandler = this.mouseUpHandler.bind(this);
     this.getCoordinates = this.getCoordinates.bind(this);
+    this.submitAvatar = this.submitAvatar.bind(this);
+    this.submitDrawing = this.submitDrawing.bind(this);
   }
 
   componentDidMount() {
@@ -28,11 +36,17 @@ export default class PlayerCanvas extends Component {
     /* adds a event listener to listen for any browser resizing */
     window.addEventListener('resize', this.updateCanvas, false);
     const ctx = this.refs.canvas.getContext('2d');
-    ctx.strokeStyle = '#69D2E7';
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = hexColors[this.props.routeParams.playerNum];
+    ctx.lineWidth = 7;
     ctx.canvas.addEventListener('touchstart', this.mouseDownHandler, false);
     ctx.canvas.addEventListener('touchend', this.mouseUpHandler, false);
     ctx.canvas.addEventListener('touchmove', this.mouseMoveHandler, false);
+
+    /* sockets */
+    socket.on('send-keyword', ({ keyword }) => {
+      console.log('KEYWORD IS:', keyword);
+      this.setState({ message: keyword });
+    });
   }
 
   getCoordinates(e) {
@@ -81,18 +95,41 @@ export default class PlayerCanvas extends Component {
   updateCanvas() {
     console.log('UPDATE CANVAS');
     const ctx = this.refs.canvas.getContext('2d');
-    ctx.canvas.width = window.innerWidth;
-    ctx.canvas.height = window.innerHeight - 50;
+    ctx.canvas.width = this.state.canvasWidth;
+    ctx.canvas.height = this.state.canvasHeight;
+  }
+
+  submitAvatar() {
+    const ctx = this.refs.canvas.getContext('2d');
+    const avatar = this.refs.canvas.toDataURL();
+    socket.emit('save-avatar', { avatar });
+    this.setState({ avatarMenu: false });
+    this.setState({ keywordMenu: true });
+    ctx.clearRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+  }
+
+  submitDrawing() {
+    const drawing = this.refs.canvas.toDataURL();
+    socket.emit('submit-drawing', { drawing });
   }
 
   render() {
     return (
       <div className="player-game-wrapper">
-        <div className="player-message-container">Player Name however long they want</div>
-        <div className="player-prompt-container"> Prompt Message for player instructions </div>
+        <div className="player-message-container">{this.state.name}</div>
+        <div className="player-prompt-container"> {this.state.message} </div>
         <div className="player-canvas-wrapper">
           <canvas className="player-canvas" ref="canvas" />
         </div>
+        {this.state.avatarMenu ?
+          <button
+            className="player-canvas-button"
+            onTouchStart={this.submitAvatar}
+          > Submit Avatar </button> :
+          <button
+            className="player-canvas-button"
+            onTouchStart={this.submitDrawing}
+          > Submit Drawing </button>}
       </div>
     );
   }

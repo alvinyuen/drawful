@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
-import io from 'socket.io-client';
+import { socket } from './HostCanvas.jsx';
 import { browserHistory } from 'react-router';
 
 
 import './playerJoin.scss';
 
-const socket = io();
+
 
 export default class playerJoin extends Component {
 
@@ -26,10 +26,9 @@ export default class playerJoin extends Component {
   joinRoom() {
     socket.emit('player-join', { roomCode: this.state.roomCode, playerName: this.state.playerName });
     socket.on('player-join-response', (payload) => {
-      console.log('[CLIENT] player created:', payload);
       /* direct to players in-game canvas page */
       if (payload.playerNum) {
-        browserHistory.push('/player');
+        browserHistory.push(`/player/${payload.playerNum}`);
       }
     });
   }
