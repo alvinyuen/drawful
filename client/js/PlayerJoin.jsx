@@ -53,7 +53,12 @@ export default class playerJoin extends Component {
             />
           </div>
 
-          <button className="player-join-button" onClick={this.joinRoom}> JOIN </button>
+          <button
+            className="player-join-button"
+            onClick={this.joinRoom}
+            onTouchStart={this.joinRoom}
+          > JOIN
+          </button>
         </section>
       </div>
     );

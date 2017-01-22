@@ -66,7 +66,7 @@
 	
 	var _HostCanvas2 = _interopRequireDefault(_HostCanvas);
 	
-	var _PlayerJoin = __webpack_require__(299);
+	var _PlayerJoin = __webpack_require__(302);
 	
 	var _PlayerJoin2 = _interopRequireDefault(_PlayerJoin);
 	
@@ -26934,6 +26934,10 @@
 	
 	var _HostCanvas = __webpack_require__(240);
 	
+	var _PlayerGuess = __webpack_require__(299);
+	
+	var _PlayerGuess2 = _interopRequireDefault(_PlayerGuess);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -26996,6 +27000,12 @@
 	
 	        console.log('KEYWORD IS:', keyword);
 	        _this2.setState({ message: keyword });
+	      });
+	
+	      _HostCanvas.socket.on('round-enter-keyword', function (round) {
+	        console.log('PLAYER ENTER KEYWORD START', round);
+	        _this2.setState({ avatarMenu: false });
+	        _this2.setState({ keywordMenu: true });
 	      });
 	    }
 	  }, {
@@ -27061,7 +27071,6 @@
 	      var avatar = this.refs.canvas.toDataURL();
 	      _HostCanvas.socket.emit('save-avatar', { avatar: avatar });
 	      this.setState({ avatarMenu: false });
-	      this.setState({ keywordMenu: true });
 	      ctx.clearRect(0, 0, this.state.canvasWidth, this.state.canvasHeight);
 	    }
 	  }, {
@@ -27076,37 +27085,42 @@
 	      return _react2.default.createElement(
 	        'div',
 	        { className: 'player-game-wrapper' },
-	        _react2.default.createElement(
+	        this.state.keywordMenu ? _react2.default.createElement(_PlayerGuess2.default, null) : _react2.default.createElement(
 	          'div',
-	          { className: 'player-message-container' },
-	          this.state.name
-	        ),
-	        _react2.default.createElement(
-	          'div',
-	          { className: 'player-prompt-container' },
-	          ' ',
-	          this.state.message,
-	          ' '
-	        ),
-	        _react2.default.createElement(
-	          'div',
-	          { className: 'player-canvas-wrapper' },
-	          _react2.default.createElement('canvas', { className: 'player-canvas', ref: 'canvas' })
-	        ),
-	        this.state.avatarMenu ? _react2.default.createElement(
-	          'button',
-	          {
-	            className: 'player-canvas-button',
-	            onTouchStart: this.submitAvatar
-	          },
-	          ' Submit Avatar '
-	        ) : _react2.default.createElement(
-	          'button',
-	          {
-	            className: 'player-canvas-button',
-	            onTouchStart: this.submitDrawing
-	          },
-	          ' Submit Drawing '
+	          null,
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'player-message-container' },
+	            this.state.name
+	          ),
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'player-prompt-container' },
+	            ' ',
+	            this.state.message,
+	            ' '
+	          ),
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'player-canvas-wrapper' },
+	            _react2.default.createElement('canvas', { className: 'player-canvas', ref: 'canvas' })
+	          ),
+	          this.state.avatarMenu ? _react2.default.createElement(
+	            'button',
+	            {
+	              className: 'player-canvas-button',
+	              onTouchStart: this.submitAvatar
+	            },
+	            ' Submit Avatar '
+	          ) : _react2.default.createElement(
+	            'button',
+	            {
+	              className: 'player-canvas-button',
+	              onTouchStart: this.submitDrawing,
+	              onClick: this.submitDrawing
+	            },
+	            ' Submit Drawing '
+	          )
 	        )
 	      );
 	    }
@@ -27271,6 +27285,7 @@
 	        };
 	      });
 	
+	      // round start, timer in other component
 	      socket.on('round-start', function (round) {
 	        console.log('initiating rounds:', round);
 	        _this2.setState({ dipMenu: false });
@@ -27279,10 +27294,12 @@
 	        var ctx = _this2.refs.canvas.getContext('2d');
 	        // clear canvas first
 	        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+	
+	        // round drawing display to host
 	        var roundImg = new Image();
 	        roundImg.src = round.drawing;
 	        roundImg.onload = function () {
-	          ctx.drawImage(roundImg, 100, 100, 600, 600);
+	          ctx.drawImage(roundImg, 300, 100, 600, 600);
 	          ctx.fillStyle = hexColors[1];
 	        };
 	      });
@@ -27296,14 +27313,13 @@
 	        _this2.setState({ timer: 20 });
 	        var timerInt = setInterval(function () {
 	          _this2.setState({ timer: _this2.state.timer - 1 });
+	          if (_this2.state.timer === 0) {
+	            clearInterval(timerInt);
+	            _this2.setState({ dipMenu: false });
+	            _this2.setState({ timerMenu: false });
+	            socket.emit('start-rounds');
+	          }
 	        }, 1000);
-	
-	        setTimeout(function () {
-	          clearInterval(timerInt);
-	          _this2.setState({ dipMenu: false });
-	          _this2.setState({ timerMenu: false });
-	          socket.emit('start-rounds');
-	        }, 20000);
 	      });
 	    }
 	  }, {
@@ -35957,7 +35973,7 @@
 	    var _this = _possibleConstructorReturn(this, (GameRound.__proto__ || Object.getPrototypeOf(GameRound)).call(this, props));
 	
 	    _this.state = {
-	      timer: 30
+	      timer: 20
 	    };
 	    return _this;
 	  }
@@ -35967,13 +35983,14 @@
 	    value: function componentDidMount() {
 	      var _this2 = this;
 	
+	      // set timer for player inputs
 	      var timerInt = setInterval(function () {
 	        _this2.setState({ timer: _this2.state.timer - 1 });
+	        if (_this2.state.timer === 0) {
+	          clearInterval(timerInt);
+	          socket.emit('start-guesses');
+	        }
 	      }, 1000);
-	      setTimeout(function () {
-	        clearInterval(timerInt);
-	        socket.emit('start-guesses');
-	      }, 30000);
 	    }
 	  }, {
 	    key: 'render',
@@ -35986,11 +36003,11 @@
 	          { className: 'game-overlay' },
 	          'What is it?'
 	        ),
-	        _react2.default.createElement(
+	        this.state.timer ? _react2.default.createElement(
 	          'div',
 	          { className: 'game-overlay2' },
 	          this.state.timer
-	        )
+	        ) : null
 	      );
 	    }
 	  }]);
@@ -36098,9 +36115,163 @@
 	
 	var _HostCanvas = __webpack_require__(240);
 	
+	__webpack_require__(300);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var PlayerGuess = function (_Component) {
+	  _inherits(PlayerGuess, _Component);
+	
+	  function PlayerGuess(props) {
+	    _classCallCheck(this, PlayerGuess);
+	
+	    var _this = _possibleConstructorReturn(this, (PlayerGuess.__proto__ || Object.getPrototypeOf(PlayerGuess)).call(this, props));
+	
+	    _this.state = {
+	      playerName: '',
+	      keyword: '',
+	      message: ''
+	    };
+	    _this.submitKeyword = _this.submitKeyword.bind(_this);
+	    _this.handleInput = _this.handleInput.bind(_this);
+	    return _this;
+	  }
+	
+	  _createClass(PlayerGuess, [{
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      console.log('PLAYER GUESS COMPONENT MOUNTED');
+	    }
+	  }, {
+	    key: 'handleInput',
+	    value: function handleInput(e) {
+	      this.setState(_defineProperty({}, e.target.name, e.target.value));
+	    }
+	  }, {
+	    key: 'submitKeyword',
+	    value: function submitKeyword() {
+	      console.log('submit keyword');
+	      if (!this.state.keyword.length) {
+	        this.setState({ message: 'Can\'t be empty!' });
+	      } else {
+	        this.setState({ message: 'Nice!' });
+	        _HostCanvas.socket.emit('submit-keyword', this.state.keyword);
+	        this.setState({ keyword: '' });
+	      }
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      return _react2.default.createElement(
+	        'div',
+	        { className: 'player-guess-wrapper' },
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'player-guess-join-title' },
+	          this.state.message
+	        ),
+	        _react2.default.createElement(
+	          'section',
+	          { className: 'player-guess-container' },
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'player-guess-input-container' },
+	            _react2.default.createElement('input', {
+	              className: 'player-guess-input',
+	              value: this.state.keyword,
+	              placeholder: 'Enter your keyword',
+	              name: 'keyword',
+	              onChange: this.handleInput
+	            })
+	          ),
+	          _react2.default.createElement(
+	            'button',
+	            {
+	              className: 'player-guess-submit-button',
+	              onClick: this.submitKeyword,
+	              onTouchStart: this.submitKeyword
+	            },
+	            ' Submit'
+	          )
+	        )
+	      );
+	    }
+	  }]);
+	
+	  return PlayerGuess;
+	}(_react.Component);
+	
+	exports.default = PlayerGuess;
+
+/***/ },
+/* 300 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+	
+	// load the styles
+	var content = __webpack_require__(301);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(236)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../node_modules/css-loader/index.js?sourceMap!./../../node_modules/sass-loader/index.js?sourceMap!./playerGuess.scss", function() {
+				var newContent = require("!!./../../node_modules/css-loader/index.js?sourceMap!./../../node_modules/sass-loader/index.js?sourceMap!./playerGuess.scss");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 301 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(235)();
+	// imports
+	
+	
+	// module
+	exports.push([module.id, ".player-guess-wrapper {\n  border: 3px solid black;\n  width: 100vw;\n  max-width: 100%;\n  height: 100vh;\n  max-height: 100%;\n  padding: 0;\n  margin: 0 auto;\n  background-color: lightgray; }\n\n.player-guess-title {\n  font-size: 2rem;\n  font-weight: 700;\n  text-align: center;\n  margin-top: 2rem; }\n\n.player-guess-container {\n  display: block;\n  width: 70vw;\n  margin: 0 auto; }\n\n.player-guess-input-container {\n  margin: 1rem 0; }\n\n.player-guess-input {\n  height: 1.5rem;\n  border: 0.5rem solid lightskyblue;\n  width: 100%;\n  border-radius: 3px;\n  font-size: 1.5rem; }\n\n.player-guess-submit-button {\n  height: 2rem;\n  color: white;\n  width: 60%;\n  background-color: black;\n  font-size: 1.2rem;\n  font-weight: 700; }\n", "", {"version":3,"sources":["/./client/js/client/js/playerGuess.scss"],"names":[],"mappings":"AAEA;EACI,wBAAuB;EACvB,aAAY;EACZ,gBAAe;EACf,cAAa;EACb,iBAAgB;EAChB,WAAU;EACV,eAAc;EACd,4BACJ,EAAE;;AAEF;EACI,gBAAe;EACf,iBAAgB;EAChB,mBAAkB;EAClB,iBAAgB,EACnB;;AAED;EACI,eAAc;EACd,YAAW;EACX,eAAc,EACjB;;AAED;EACI,eAAc,EACjB;;AAED;EACI,eAAc;EACd,kCAhCe;EAiCf,YAAW;EACX,mBAAkB;EAClB,kBAAiB,EACpB;;AAED;EACI,aAAY;EACZ,aAAY;EACZ,WAAU;EACV,wBAAuB;EACvB,kBAAiB;EACjB,iBAAgB,EACnB","file":"playerGuess.scss","sourcesContent":["$blue: lightskyblue;\n\n.player-guess-wrapper {\n    border: 3px solid black;\n    width: 100vw;\n    max-width: 100%;\n    height: 100vh;\n    max-height: 100%;\n    padding: 0;\n    margin: 0 auto;\n    background-color: lightgray\n}\n\n.player-guess-title {\n    font-size: 2rem;\n    font-weight: 700;\n    text-align: center;\n    margin-top: 2rem;\n}\n\n.player-guess-container {\n    display: block;\n    width: 70vw;\n    margin: 0 auto;\n}\n\n.player-guess-input-container {\n    margin: 1rem 0;\n}\n\n.player-guess-input {\n    height: 1.5rem;\n    border: 0.5rem solid $blue;\n    width: 100%;\n    border-radius: 3px;\n    font-size: 1.5rem;\n}\n\n.player-guess-submit-button {\n    height: 2rem;\n    color: white;\n    width: 60%;\n    background-color: black;\n    font-size: 1.2rem;\n    font-weight: 700;\n}"],"sourceRoot":"webpack://"}]);
+	
+	// exports
+
+
+/***/ },
+/* 302 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _react = __webpack_require__(1);
+	
+	var _react2 = _interopRequireDefault(_react);
+	
+	var _HostCanvas = __webpack_require__(240);
+	
 	var _reactRouter = __webpack_require__(178);
 	
-	__webpack_require__(300);
+	__webpack_require__(303);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -36177,8 +36348,12 @@
 	          ),
 	          _react2.default.createElement(
 	            'button',
-	            { className: 'player-join-button', onClick: this.joinRoom },
-	            ' JOIN '
+	            {
+	              className: 'player-join-button',
+	              onClick: this.joinRoom,
+	              onTouchStart: this.joinRoom
+	            },
+	            ' JOIN'
 	          )
 	        )
 	      );
@@ -36191,13 +36366,13 @@
 	exports.default = playerJoin;
 
 /***/ },
-/* 300 */
+/* 303 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(301);
+	var content = __webpack_require__(304);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(236)(content, {});
@@ -36217,7 +36392,7 @@
 	}
 
 /***/ },
-/* 301 */
+/* 304 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(235)();

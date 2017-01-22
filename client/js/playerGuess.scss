@@ -1,0 +1,46 @@
+$blue: lightskyblue;
+
+.player-guess-wrapper {
+    border: 3px solid black;
+    width: 100vw;
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100%;
+    padding: 0;
+    margin: 0 auto;
+    background-color: lightgray
+}
+
+.player-guess-title {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.player-guess-container {
+    display: block;
+    width: 70vw;
+    margin: 0 auto;
+}
+
+.player-guess-input-container {
+    margin: 1rem 0;
+}
+
+.player-guess-input {
+    height: 1.5rem;
+    border: 0.5rem solid $blue;
+    width: 100%;
+    border-radius: 3px;
+    font-size: 1.5rem;
+}
+
+.player-guess-submit-button {
+    height: 2rem;
+    color: white;
+    width: 60%;
+    background-color: black;
+    font-size: 1.2rem;
+    font-weight: 700;
+}

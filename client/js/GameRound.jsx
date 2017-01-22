@@ -12,16 +12,19 @@ export default class GameRound extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      timer: 30,
+      timer: 20,
     };
   }
 
   componentDidMount() {
-    const timerInt = setInterval(() => { this.setState({ timer: this.state.timer - 1 }); }, 1000);
-    setTimeout(() => {
-      clearInterval(timerInt);
-      socket.emit('start-guesses');
-    }, 30000);
+      // set timer for player inputs
+      const timerInt = setInterval(() => {
+        this.setState({ timer: this.state.timer - 1 });
+        if (this.state.timer === 0) {
+          clearInterval(timerInt);
+          socket.emit('start-guesses');
+        }
+      }, 1000);
   }
 
 
@@ -31,9 +34,10 @@ export default class GameRound extends Component {
         <div className="game-overlay">
           What is it?
         </div>
-        <div className="game-overlay2">
-          {this.state.timer}
-        </div>
+        {this.state.timer ?
+          <div className="game-overlay2">
+            {this.state.timer}
+          </div> : null }
       </div>
     );
   }

@@ -156,7 +156,7 @@ module.exports = (io) => {
         gameRound = [];
         gameRound.push(round);
         socket.emit('round-start', round);
-        socket.broadcast.to(roomCode).emit('round-guess', round);
+        socket.broadcast.to(roomCode).emit('round-enter-keyword', round);
       } else if (!rounds.shift()) {
         // game ended // send scores
         console.log('GAME ENDED');
@@ -165,10 +165,16 @@ module.exports = (io) => {
         gameRound = [];
         gameRound.push(round);
         socket.emit('round-start', round);
-        socket.broadcast.to(roomCode).emit('round-guess', round);
+        socket.broadcast.to(roomCode).emit('round-enter-keyword', round);
       }
-      //   }
-      // }
+    });
+
+    socket.on('submit-keyword', (payload) => {
+      console.log('RECEIVE KEYWORD:', payload);
+    });
+
+    socket.on('start-guesses', () => {
+      console.log('START GUESSES TRIGGERED');
     });
 
   }); /* socket connection */

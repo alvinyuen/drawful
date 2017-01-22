@@ -74,6 +74,7 @@ export default class HostCanvas extends Component {
       };
     });
 
+    // round start, timer in other component
     socket.on('round-start', (round) => {
       console.log('initiating rounds:', round);
       this.setState({ dipMenu: false });
@@ -82,10 +83,12 @@ export default class HostCanvas extends Component {
       const ctx = this.refs.canvas.getContext('2d');
       // clear canvas first
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      // round drawing display to host
       const roundImg = new Image();
       roundImg.src = round.drawing;
       roundImg.onload = () => {
-        ctx.drawImage(roundImg, 100, 100, 600, 600);
+        ctx.drawImage(roundImg, 300, 100, 600, 600);
         ctx.fillStyle = hexColors[1];
       };
     });
@@ -97,14 +100,15 @@ export default class HostCanvas extends Component {
       this.setState({ dipMenu: true });
       this.setState({ timerMenu: true });
       this.setState({ timer: 20 });
-      const timerInt = setInterval(() => { this.setState({ timer: this.state.timer - 1 }); }, 1000);
-
-      setTimeout(() => {
-        clearInterval(timerInt);
-        this.setState({ dipMenu: false });
-        this.setState({ timerMenu: false });
-        socket.emit('start-rounds');
-      }, 20000);
+      const timerInt = setInterval(() => {
+        this.setState({ timer: this.state.timer - 1 });
+        if (this.state.timer === 0) {
+          clearInterval(timerInt);
+          this.setState({ dipMenu: false });
+          this.setState({ timerMenu: false });
+          socket.emit('start-rounds');
+        }
+      }, 1000);
     });
   }
 
