@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import io from 'socket.io-client';
 
+import GameRound from './GameRound.jsx';
 import './hostCanvas.scss';
 
 export const socket = io();
@@ -17,6 +18,8 @@ export default class HostCanvas extends Component {
       timerMenu: false,
       dipMenu: false,
       timer: 0,
+      roundMenu: false,
+      round: {},
     };
     this.startGame = this.startGame.bind(this);
   }
@@ -25,7 +28,6 @@ export default class HostCanvas extends Component {
     console.log('host mount');
 
     /* socket */
-    const socket = io();
     socket.emit('host-room');
     socket.on('host-room-response', (payload) => {
       this.setState({ roomCode: payload.roomCode });
@@ -72,8 +74,20 @@ export default class HostCanvas extends Component {
       };
     });
 
-    socket.on('round-one', () => {
-      console.log('initiating rounds');
+    socket.on('round-start', (round) => {
+      console.log('initiating rounds:', round);
+      this.setState({ dipMenu: false });
+      this.setState({ timerMenu: false });
+      this.setState({ roundMenu: true });
+      const ctx = this.refs.canvas.getContext('2d');
+      // clear canvas first
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      const roundImg = new Image();
+      roundImg.src = round.drawing;
+      roundImg.onload = () => {
+        ctx.drawImage(roundImg, 100, 100, 600, 600);
+        ctx.fillStyle = hexColors[1];
+      };
     });
 
     // keywords sent, start timer
@@ -81,14 +95,16 @@ export default class HostCanvas extends Component {
       console.log('STARTING TIMER ON HOST');
       this.setState({ mainMenu: false });
       this.setState({ dipMenu: true });
-      this.setState({ timer: 30 });
+      this.setState({ timerMenu: true });
+      this.setState({ timer: 20 });
       const timerInt = setInterval(() => { this.setState({ timer: this.state.timer - 1 }); }, 1000);
 
       setTimeout(() => {
         clearInterval(timerInt);
         this.setState({ dipMenu: false });
+        this.setState({ timerMenu: false });
         socket.emit('start-rounds');
-      }, 30000);
+      }, 20000);
     });
   }
 
@@ -123,12 +139,18 @@ export default class HostCanvas extends Component {
                 START GAME
               </button>
             </div> : null }
+
           {this.state.dipMenu ?
             <div>
               <div className="overlay"> Time to Draw ! </div>
-              <div className="overlay2"> {this.state.timer} </div>
+              {this.state.timerMenu ?
+                <div className="overlay2"> {this.state.timer} </div> : null }
             </div>
             : null}
+
+          {this.state.roundMenu ?
+            <GameRound round={this.state.round} /> : null }
+
         </div>
       </div>
     );

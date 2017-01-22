@@ -66,7 +66,7 @@
 	
 	var _HostCanvas2 = _interopRequireDefault(_HostCanvas);
 	
-	var _PlayerJoin = __webpack_require__(296);
+	var _PlayerJoin = __webpack_require__(299);
 	
 	var _PlayerJoin2 = _interopRequireDefault(_PlayerJoin);
 	
@@ -27178,7 +27178,11 @@
 	
 	var _socket2 = _interopRequireDefault(_socket);
 	
-	__webpack_require__(294);
+	var _GameRound = __webpack_require__(294);
+	
+	var _GameRound2 = _interopRequireDefault(_GameRound);
+	
+	__webpack_require__(297);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -27205,7 +27209,9 @@
 	      mainMenu: true,
 	      timerMenu: false,
 	      dipMenu: false,
-	      timer: 0
+	      timer: 0,
+	      roundMenu: false,
+	      round: {}
 	    };
 	    _this.startGame = _this.startGame.bind(_this);
 	    return _this;
@@ -27219,7 +27225,6 @@
 	      console.log('host mount');
 	
 	      /* socket */
-	      var socket = (0, _socket2.default)();
 	      socket.emit('host-room');
 	      socket.on('host-room-response', function (payload) {
 	        _this2.setState({ roomCode: payload.roomCode });
@@ -27266,8 +27271,20 @@
 	        };
 	      });
 	
-	      socket.on('round-one', function () {
-	        console.log('initiating rounds');
+	      socket.on('round-start', function (round) {
+	        console.log('initiating rounds:', round);
+	        _this2.setState({ dipMenu: false });
+	        _this2.setState({ timerMenu: false });
+	        _this2.setState({ roundMenu: true });
+	        var ctx = _this2.refs.canvas.getContext('2d');
+	        // clear canvas first
+	        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+	        var roundImg = new Image();
+	        roundImg.src = round.drawing;
+	        roundImg.onload = function () {
+	          ctx.drawImage(roundImg, 100, 100, 600, 600);
+	          ctx.fillStyle = hexColors[1];
+	        };
 	      });
 	
 	      // keywords sent, start timer
@@ -27275,7 +27292,8 @@
 	        console.log('STARTING TIMER ON HOST');
 	        _this2.setState({ mainMenu: false });
 	        _this2.setState({ dipMenu: true });
-	        _this2.setState({ timer: 30 });
+	        _this2.setState({ timerMenu: true });
+	        _this2.setState({ timer: 20 });
 	        var timerInt = setInterval(function () {
 	          _this2.setState({ timer: _this2.state.timer - 1 });
 	        }, 1000);
@@ -27283,8 +27301,9 @@
 	        setTimeout(function () {
 	          clearInterval(timerInt);
 	          _this2.setState({ dipMenu: false });
+	          _this2.setState({ timerMenu: false });
 	          socket.emit('start-rounds');
-	        }, 30000);
+	        }, 20000);
 	      });
 	    }
 	  }, {
@@ -27340,14 +27359,15 @@
 	              { className: 'overlay' },
 	              ' Time to Draw ! '
 	            ),
-	            _react2.default.createElement(
+	            this.state.timerMenu ? _react2.default.createElement(
 	              'div',
 	              { className: 'overlay2' },
 	              ' ',
 	              this.state.timer,
 	              ' '
-	            )
-	          ) : null
+	            ) : null
+	          ) : null,
+	          this.state.roundMenu ? _react2.default.createElement(_GameRound2.default, { round: this.state.round }) : null
 	        )
 	      );
 	    }
@@ -35897,10 +35917,137 @@
 /* 294 */
 /***/ function(module, exports, __webpack_require__) {
 
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.socket = undefined;
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _react = __webpack_require__(1);
+	
+	var _react2 = _interopRequireDefault(_react);
+	
+	var _socket = __webpack_require__(241);
+	
+	var _socket2 = _interopRequireDefault(_socket);
+	
+	__webpack_require__(295);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var hexColors = ['#1abc9c', '#f39c12', '#f1c40f', '#16a085', '#2ecc71', '#d35400', '#e67e22', '#27ae60', '#3498db', '#c0392b', '#2980b9', '#e74c3c', '#2c3e50', '#7f8c8d', '#9b59b6', '#34495e', '#3E4651', '3b5999', 'cd201f', '02b875', '007ee5', '3aaf85'];
+	
+	var socket = exports.socket = (0, _socket2.default)();
+	
+	var GameRound = function (_Component) {
+	  _inherits(GameRound, _Component);
+	
+	  function GameRound(props) {
+	    _classCallCheck(this, GameRound);
+	
+	    var _this = _possibleConstructorReturn(this, (GameRound.__proto__ || Object.getPrototypeOf(GameRound)).call(this, props));
+	
+	    _this.state = {
+	      timer: 30
+	    };
+	    return _this;
+	  }
+	
+	  _createClass(GameRound, [{
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      var _this2 = this;
+	
+	      var timerInt = setInterval(function () {
+	        _this2.setState({ timer: _this2.state.timer - 1 });
+	      }, 1000);
+	      setTimeout(function () {
+	        clearInterval(timerInt);
+	        socket.emit('start-guesses');
+	      }, 30000);
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      return _react2.default.createElement(
+	        'div',
+	        null,
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'game-overlay' },
+	          'What is it?'
+	        ),
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'game-overlay2' },
+	          this.state.timer
+	        )
+	      );
+	    }
+	  }]);
+	
+	  return GameRound;
+	}(_react.Component);
+	
+	exports.default = GameRound;
+
+/***/ },
+/* 295 */
+/***/ function(module, exports, __webpack_require__) {
+
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(295);
+	var content = __webpack_require__(296);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(236)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../node_modules/css-loader/index.js?sourceMap!./../../node_modules/sass-loader/index.js?sourceMap!./gameRound.scss", function() {
+				var newContent = require("!!./../../node_modules/css-loader/index.js?sourceMap!./../../node_modules/sass-loader/index.js?sourceMap!./gameRound.scss");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 296 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(235)();
+	// imports
+	
+	
+	// module
+	exports.push([module.id, ".game-overlay {\n  width: 40rem;\n  border: 1px solid black;\n  border-radius: 5px;\n  position: absolute;\n  top: 10%;\n  left: 50%;\n  margin-left: -20rem;\n  text-align: center;\n  font-size: 40px;\n  font-weight: 700; }\n\n.game-overlay2 {\n  width: 20rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 40%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n", "", {"version":3,"sources":["/./client/js/client/js/gameRound.scss"],"names":[],"mappings":"AACA;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB;EAClB,gBAAe;EACf,iBAAgB,EACnB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB","file":"gameRound.scss","sourcesContent":["\n.game-overlay {\n    width: 40rem;\n    border: 1px solid black;\n    border-radius: 5px;\n    position: absolute;\n    top: 10%;\n    left: 50%;\n    margin-left: -20rem;\n    text-align: center;\n    font-size: 40px;\n    font-weight: 700;\n}\n\n.game-overlay2 {\n    width: 20rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 40%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}"],"sourceRoot":"webpack://"}]);
+	
+	// exports
+
+
+/***/ },
+/* 297 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+	
+	// load the styles
+	var content = __webpack_require__(298);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(236)(content, {});
@@ -35920,7 +36067,7 @@
 	}
 
 /***/ },
-/* 295 */
+/* 298 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(235)();
@@ -35934,7 +36081,7 @@
 
 
 /***/ },
-/* 296 */
+/* 299 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35953,7 +36100,7 @@
 	
 	var _reactRouter = __webpack_require__(178);
 	
-	__webpack_require__(297);
+	__webpack_require__(300);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -36044,13 +36191,13 @@
 	exports.default = playerJoin;
 
 /***/ },
-/* 297 */
+/* 300 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(298);
+	var content = __webpack_require__(301);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(236)(content, {});
@@ -36070,7 +36217,7 @@
 	}
 
 /***/ },
-/* 298 */
+/* 301 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(235)();

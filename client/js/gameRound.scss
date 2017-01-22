@@ -1,0 +1,23 @@
+
+.game-overlay {
+    width: 40rem;
+    border: 1px solid black;
+    border-radius: 5px;
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    margin-left: -20rem;
+    text-align: center;
+    font-size: 40px;
+    font-weight: 700;
+}
+
+.game-overlay2 {
+    width: 20rem;
+    border: 1px solid black;
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    margin-left: -10rem;
+    text-align: center;
+}

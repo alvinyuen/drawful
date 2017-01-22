@@ -122,32 +122,55 @@ module.exports = (io) => {
       findClient(socket).keyword = payload.keyword;
     });
 
-
+    let fixedDrawing = [];
+    let rounds = [];
+    let gameRound = [];
     socket.on('start-rounds', (payload) => {
       console.log('*** ATTEMPT TO START ROUNDS ***');
       const host = findClient(socket);
       const roomCode = host.roomCode;
-      let allDrawn = false;
-      while (!allDrawn) {
-        const players = findPlayers(roomCode);
-         console.log('in while loop:', players.length);
-        allDrawn = players.every(player => player.drawing);
-        if (allDrawn) {
-          console.log(`**** ALL PLAYERS HAVE DRAWN *** : ROOM: ${roomCode}`);
+      // let allDrawn = false;
+      // while (!allDrawn) {
+      //   const players = findPlayers(roomCode);
+      //    console.log('in while loop:', players.length);
+      //   allDrawn = players.every(player => player.drawing);
+      //   if (allDrawn) {
+      //     console.log(`**** ALL PLAYERS HAVE DRAWN *** : ROOM: ${roomCode}`);
+
           // start game 1, loop through all players with drawings
           /* player score */
           // arrayScore [ {id: id, name: name, score: score}, ... ]
           /* game round */
           // game [ answer : {id: id, keyword: keyword, drawing: drawing },
           //        players : [ { id: id, keyword: keyword, guess: guess }, ... ] ]
-          let arrOfDrawings = players.filter(player => player.drawing);
-          const firstDrawing = arrOfDrawings.shift();
-          socket.emit('round-one', { drawing: firstDrawing });
-
-
-        }
+      const players = findPlayers(roomCode);
+      if (!fixedDrawing.length) {
+        fixedDrawing = players.filter(player => player.drawing);
+        rounds = players.filter(player => player.drawing)
+        .map(player => ({
+          id: player.id,
+          player: player.playerName,
+          keyword: player.keyword,
+          drawing: player.drawing }));
+        const round = rounds.shift();
+        gameRound = [];
+        gameRound.push(round);
+        socket.emit('round-start', round);
+        socket.broadcast.to(roomCode).emit('round-guess', round);
+      } else if (!rounds.shift()) {
+        // game ended // send scores
+        console.log('GAME ENDED');
+      } else {
+        const round = rounds.shift();
+        gameRound = [];
+        gameRound.push(round);
+        socket.emit('round-start', round);
+        socket.broadcast.to(roomCode).emit('round-guess', round);
       }
+      //   }
+      // }
     });
+
   }); /* socket connection */
 };
 
