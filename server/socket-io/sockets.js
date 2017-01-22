@@ -19,6 +19,9 @@ const genRandomNumber = (min, max) => {
 const wordList = ['Hot Pocket', 'vikings', 'thermonuclear detonation', 'invading poland', 'crumbs all over the carpet', 'the underground railroad', 'an ugly face', 'land mines', 'auschwitz', 'the big bang'];
 
 const clients = [];
+var fixedDrawing = []; // total rounds
+var rounds = []; // shift off
+var gameRound = []; // individual rounds
 
 const findClient = (socket) => {
   const index = clients.findIndex(client => client.id === socket.id);
@@ -122,39 +125,25 @@ module.exports = (io) => {
       findClient(socket).keyword = payload.keyword;
     });
 
-    let fixedDrawing = [];
-    let rounds = [];
-    let gameRound = [];
+
     socket.on('start-rounds', (payload) => {
       console.log('*** ATTEMPT TO START ROUNDS ***');
       const host = findClient(socket);
       const roomCode = host.roomCode;
-      // let allDrawn = false;
-      // while (!allDrawn) {
-      //   const players = findPlayers(roomCode);
-      //    console.log('in while loop:', players.length);
-      //   allDrawn = players.every(player => player.drawing);
-      //   if (allDrawn) {
-      //     console.log(`**** ALL PLAYERS HAVE DRAWN *** : ROOM: ${roomCode}`);
 
-          // start game 1, loop through all players with drawings
-          /* player score */
-          // arrayScore [ {id: id, name: name, score: score}, ... ]
-          /* game round */
-          // game [ answer : {id: id, keyword: keyword, drawing: drawing },
-          //        players : [ { id: id, keyword: keyword, guess: guess }, ... ] ]
+      /* todo - alert players who have not finished drawing */
       const players = findPlayers(roomCode);
       if (!fixedDrawing.length) {
         fixedDrawing = players.filter(player => player.drawing);
         rounds = players.filter(player => player.drawing)
         .map(player => ({
           id: player.id,
-          player: player.playerName,
+          playerName: player.playerName,
           keyword: player.keyword,
           drawing: player.drawing }));
         const round = rounds.shift();
-        gameRound = [];
         gameRound.push(round);
+        console.log('gameround init:', JSON.stringify(gameRound));
         socket.emit('round-start', round);
         socket.broadcast.to(roomCode).emit('round-enter-keyword', round);
       } else if (!rounds.shift()) {
@@ -162,19 +151,49 @@ module.exports = (io) => {
         console.log('GAME ENDED');
       } else {
         const round = rounds.shift();
-        gameRound = [];
         gameRound.push(round);
+        console.log('gameround init:', JSON.stringify(gameRound));
         socket.emit('round-start', round);
         socket.broadcast.to(roomCode).emit('round-enter-keyword', round);
       }
     });
 
-    socket.on('submit-keyword', (payload) => {
-      console.log('RECEIVE KEYWORD:', payload);
+    /* users submit keyword */
+    socket.on('submit-keyword', (keyword) => {
+      console.log('RECEIVE KEYWORD:', keyword);
+      console.log('submit keyword gameround init:', JSON.stringify(gameRound));
+      gameRound[1] = gameRound[1] || [];
+      const player = findClient(socket);
+      gameRound[1].push({ id: player.id, playerName: player.playerName, keyword });
+      console.log('GAMEROUND ARRAY AFTER PLAYER SUBMISSION:', JSON.stringify(gameRound));
     });
 
-    socket.on('start-guesses', () => {
+    /* user start guesses - return list of keywords */
+    socket.on('start-guesses', (roomCode) => {
       console.log('START GUESSES TRIGGERED');
+      gameRound[1] = gameRound[1] || [];
+      if (!gameRound[1].length) {
+        console.error('No player submissions');
+      } else {
+        // return game round information
+        const listOfKeywords = [];
+        listOfKeywords.push(gameRound[0].keyword);
+        gameRound[1].forEach(player => listOfKeywords.push(player.keyword));
+        listOfKeywords.sort();
+        socket.broadcast.to(roomCode).emit('guess-list', listOfKeywords);
+      }
+    });
+
+    /* show answers */
+    socket.on('show-answers', () => {
+      // calc score
+      // return keywords and who they belong to
+    });
+
+    /* return scores */
+    socket.on('show-scores', () => {
+
+
     });
 
   }); /* socket connection */

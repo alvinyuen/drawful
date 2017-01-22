@@ -13,6 +13,8 @@ export default class PlayerGuess extends Component {
       playerName: '',
       keyword: '',
       message: '',
+      guessMenu: false,
+      guessOptions: [],
     };
     this.submitKeyword = this.submitKeyword.bind(this);
     this.handleInput = this.handleInput.bind(this);
@@ -20,6 +22,12 @@ export default class PlayerGuess extends Component {
 
   componentDidMount() {
     console.log('PLAYER GUESS COMPONENT MOUNTED');
+
+    socket.on('guess-list', (keywordList) => {
+      console.log('PLAYER RECEIVING GAME ROUND INFO', keywordList);
+      this.setState({ guessMenu: true });
+      this.setState({ guessOptions: keywordList });
+    });
   }
 
   handleInput(e) {
@@ -39,27 +47,44 @@ export default class PlayerGuess extends Component {
 
   render() {
     return (
-      <div className="player-guess-wrapper">
-        <div className="player-guess-join-title">{this.state.message}</div>
-
-        <section className="player-guess-container">
-          <div className="player-guess-input-container">
-            <input
-              className="player-guess-input"
-              value={this.state.keyword}
-              placeholder="Enter your keyword"
-              name="keyword"
-              onChange={this.handleInput}
-            />
+      <div >
+        {this.state.guessMenu ?
+          <div className="player-guess-option-wrapper">
+            <div className="player-guess-join-title">{this.state.message}</div>
+            <section className="player-guess-container">
+              {this.state.guessOptions.map((keyword, i) =>
+                <button
+                  key={i}
+                  className="player-guess-select-button"
+                  onClick={this.submitKeyword}
+                  onTouchStartCapture={this.submitKeyword}
+                > {keyword}
+                </button>,
+              )}
+            </section>
           </div>
+           :
+          <div className="player-guess-wrapper">
+            <div className="player-guess-join-title">{this.state.message}</div>
+            <section className="player-guess-container">
+              <div className="player-guess-input-container">
+                <input
+                  className="player-guess-input"
+                  value={this.state.keyword}
+                  placeholder="Enter your keyword"
+                  name="keyword"
+                  onChange={this.handleInput}
+                />
+              </div>
 
-          <button
-            className="player-guess-submit-button"
-            onClick={this.submitKeyword}
-            onTouchStart={this.submitKeyword}
-          > Submit
-          </button>
-        </section>
+              <button
+                className="player-guess-submit-button"
+                onClick={this.submitKeyword}
+                onTouchStart={this.submitKeyword}
+              > Submit
+              </button>
+            </section>
+          </div> }
       </div>
     );
   }

@@ -27077,7 +27077,7 @@
 	    key: 'submitDrawing',
 	    value: function submitDrawing() {
 	      var drawing = this.refs.canvas.toDataURL();
-	      _HostCanvas.socket.emit('submit-drawing', { drawing: drawing });
+	      _HostCanvas.socket.emit('submit-drawing', { drawing: drawing, keyword: this.state.message });
 	    }
 	  }, {
 	    key: 'render',
@@ -27225,6 +27225,7 @@
 	      dipMenu: false,
 	      timer: 0,
 	      roundMenu: false,
+	      guessMenu: false,
 	      round: {}
 	    };
 	    _this.startGame = _this.startGame.bind(_this);
@@ -27299,7 +27300,7 @@
 	        var roundImg = new Image();
 	        roundImg.src = round.drawing;
 	        roundImg.onload = function () {
-	          ctx.drawImage(roundImg, 300, 100, 600, 600);
+	          ctx.drawImage(roundImg, 400, 100, 600, 600);
 	          ctx.fillStyle = hexColors[1];
 	        };
 	      });
@@ -27321,6 +27322,36 @@
 	          }
 	        }, 1000);
 	      });
+	
+	      /* show guess list */
+	      socket.on('guess-list', function (keywordList) {
+	        console.log('RETURNING GAME ROUND INFO FOR HOST:', keywordList);
+	        var ctx = _this2.refs.canvas.getContext('2d');
+	        ctx.font = '40px Open Sans';
+	        ctx.fillStyle = '#000000';
+	        // load keywords on canvas
+	        var x = 100;
+	        var y = 200;
+	        keywordList.forEach(function (keyword) {
+	          ctx.fillText(keyword, x, y);
+	          y += 100;
+	          if (y === 700) {
+	            x += 100;y += 200;
+	          }
+	        });
+	
+	        // set timer for players guesses
+	        _this2.setState({ timer: 30 });
+	        var timerInt = setInterval(function () {
+	          _this2.setState({ timer: _this2.state.timer - 1 });
+	          if (_this2.state.timer === 0) {
+	            clearInterval(timerInt);
+	            _this2.setState({ dipMenu: false });
+	            _this2.setState({ timerMenu: false });
+	            socket.emit('show-answers');
+	          }
+	        }, 1000);
+	      });
 	    }
 	  }, {
 	    key: 'startGame',
@@ -27339,7 +27370,8 @@
 	          'div',
 	          { className: 'host-canvas-wrapper' },
 	          _react2.default.createElement('canvas', {
-	            className: 'host-canvas', ref: 'canvas', width: width, height: height
+	            className: 'host-canvas', ref: 'canvas', width: width, height: height,
+	            style: { background: 'url("/img/host-bg.png")' }
 	          }),
 	          this.state.mainMenu ? _react2.default.createElement(
 	            'div',
@@ -27383,7 +27415,10 @@
 	              ' '
 	            ) : null
 	          ) : null,
-	          this.state.roundMenu ? _react2.default.createElement(_GameRound2.default, { round: this.state.round }) : null
+	          this.state.roundMenu ? _react2.default.createElement(_GameRound2.default, {
+	            round: this.state.round,
+	            roomCode: this.state.roomCode
+	          }) : null
 	        )
 	      );
 	    }
@@ -35988,7 +36023,8 @@
 	        _this2.setState({ timer: _this2.state.timer - 1 });
 	        if (_this2.state.timer === 0) {
 	          clearInterval(timerInt);
-	          socket.emit('start-guesses');
+	          console.log('START GUESSES::', _this2.props.roomCode);
+	          socket.emit('start-guesses', _this2.props.roomCode);
 	        }
 	      }, 1000);
 	    }
@@ -36138,7 +36174,9 @@
 	    _this.state = {
 	      playerName: '',
 	      keyword: '',
-	      message: ''
+	      message: '',
+	      guessMenu: false,
+	      guessOptions: []
 	    };
 	    _this.submitKeyword = _this.submitKeyword.bind(_this);
 	    _this.handleInput = _this.handleInput.bind(_this);
@@ -36148,7 +36186,15 @@
 	  _createClass(PlayerGuess, [{
 	    key: 'componentDidMount',
 	    value: function componentDidMount() {
+	      var _this2 = this;
+	
 	      console.log('PLAYER GUESS COMPONENT MOUNTED');
+	
+	      _HostCanvas.socket.on('guess-list', function (keywordList) {
+	        console.log('PLAYER RECEIVING GAME ROUND INFO', keywordList);
+	        _this2.setState({ guessMenu: true });
+	        _this2.setState({ guessOptions: keywordList });
+	      });
 	    }
 	  }, {
 	    key: 'handleInput',
@@ -36170,36 +36216,67 @@
 	  }, {
 	    key: 'render',
 	    value: function render() {
+	      var _this3 = this;
+	
 	      return _react2.default.createElement(
 	        'div',
-	        { className: 'player-guess-wrapper' },
-	        _react2.default.createElement(
+	        null,
+	        this.state.guessMenu ? _react2.default.createElement(
 	          'div',
-	          { className: 'player-guess-join-title' },
-	          this.state.message
-	        ),
-	        _react2.default.createElement(
-	          'section',
-	          { className: 'player-guess-container' },
+	          { className: 'player-guess-option-wrapper' },
 	          _react2.default.createElement(
 	            'div',
-	            { className: 'player-guess-input-container' },
-	            _react2.default.createElement('input', {
-	              className: 'player-guess-input',
-	              value: this.state.keyword,
-	              placeholder: 'Enter your keyword',
-	              name: 'keyword',
-	              onChange: this.handleInput
-	            })
+	            { className: 'player-guess-join-title' },
+	            this.state.message
 	          ),
 	          _react2.default.createElement(
-	            'button',
-	            {
-	              className: 'player-guess-submit-button',
-	              onClick: this.submitKeyword,
-	              onTouchStart: this.submitKeyword
-	            },
-	            ' Submit'
+	            'section',
+	            { className: 'player-guess-container' },
+	            this.state.guessOptions.map(function (keyword, i) {
+	              return _react2.default.createElement(
+	                'button',
+	                {
+	                  key: i,
+	                  className: 'player-guess-select-button',
+	                  onClick: _this3.submitKeyword,
+	                  onTouchStartCapture: _this3.submitKeyword
+	                },
+	                ' ',
+	                keyword
+	              );
+	            })
+	          )
+	        ) : _react2.default.createElement(
+	          'div',
+	          { className: 'player-guess-wrapper' },
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'player-guess-join-title' },
+	            this.state.message
+	          ),
+	          _react2.default.createElement(
+	            'section',
+	            { className: 'player-guess-container' },
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'player-guess-input-container' },
+	              _react2.default.createElement('input', {
+	                className: 'player-guess-input',
+	                value: this.state.keyword,
+	                placeholder: 'Enter your keyword',
+	                name: 'keyword',
+	                onChange: this.handleInput
+	              })
+	            ),
+	            _react2.default.createElement(
+	              'button',
+	              {
+	                className: 'player-guess-submit-button',
+	                onClick: this.submitKeyword,
+	                onTouchStart: this.submitKeyword
+	              },
+	              ' Submit'
+	            )
 	          )
 	        )
 	      );
@@ -36246,7 +36323,7 @@
 	
 	
 	// module
-	exports.push([module.id, ".player-guess-wrapper {\n  border: 3px solid black;\n  width: 100vw;\n  max-width: 100%;\n  height: 100vh;\n  max-height: 100%;\n  padding: 0;\n  margin: 0 auto;\n  background-color: lightgray; }\n\n.player-guess-title {\n  font-size: 2rem;\n  font-weight: 700;\n  text-align: center;\n  margin-top: 2rem; }\n\n.player-guess-container {\n  display: block;\n  width: 70vw;\n  margin: 0 auto; }\n\n.player-guess-input-container {\n  margin: 1rem 0; }\n\n.player-guess-input {\n  height: 1.5rem;\n  border: 0.5rem solid lightskyblue;\n  width: 100%;\n  border-radius: 3px;\n  font-size: 1.5rem; }\n\n.player-guess-submit-button {\n  height: 2rem;\n  color: white;\n  width: 60%;\n  background-color: black;\n  font-size: 1.2rem;\n  font-weight: 700; }\n", "", {"version":3,"sources":["/./client/js/client/js/playerGuess.scss"],"names":[],"mappings":"AAEA;EACI,wBAAuB;EACvB,aAAY;EACZ,gBAAe;EACf,cAAa;EACb,iBAAgB;EAChB,WAAU;EACV,eAAc;EACd,4BACJ,EAAE;;AAEF;EACI,gBAAe;EACf,iBAAgB;EAChB,mBAAkB;EAClB,iBAAgB,EACnB;;AAED;EACI,eAAc;EACd,YAAW;EACX,eAAc,EACjB;;AAED;EACI,eAAc,EACjB;;AAED;EACI,eAAc;EACd,kCAhCe;EAiCf,YAAW;EACX,mBAAkB;EAClB,kBAAiB,EACpB;;AAED;EACI,aAAY;EACZ,aAAY;EACZ,WAAU;EACV,wBAAuB;EACvB,kBAAiB;EACjB,iBAAgB,EACnB","file":"playerGuess.scss","sourcesContent":["$blue: lightskyblue;\n\n.player-guess-wrapper {\n    border: 3px solid black;\n    width: 100vw;\n    max-width: 100%;\n    height: 100vh;\n    max-height: 100%;\n    padding: 0;\n    margin: 0 auto;\n    background-color: lightgray\n}\n\n.player-guess-title {\n    font-size: 2rem;\n    font-weight: 700;\n    text-align: center;\n    margin-top: 2rem;\n}\n\n.player-guess-container {\n    display: block;\n    width: 70vw;\n    margin: 0 auto;\n}\n\n.player-guess-input-container {\n    margin: 1rem 0;\n}\n\n.player-guess-input {\n    height: 1.5rem;\n    border: 0.5rem solid $blue;\n    width: 100%;\n    border-radius: 3px;\n    font-size: 1.5rem;\n}\n\n.player-guess-submit-button {\n    height: 2rem;\n    color: white;\n    width: 60%;\n    background-color: black;\n    font-size: 1.2rem;\n    font-weight: 700;\n}"],"sourceRoot":"webpack://"}]);
+	exports.push([module.id, ".player-guess-wrapper {\n  border: 3px solid black;\n  width: 100vw;\n  max-width: 100%;\n  height: 100vh;\n  max-height: 100%;\n  padding: 0;\n  margin: 0 auto;\n  background-color: lightgray; }\n\n.player-guess-title {\n  font-size: 2rem;\n  font-weight: 700;\n  text-align: center;\n  margin-top: 2rem; }\n\n.player-guess-container {\n  display: block;\n  width: 70vw;\n  margin: 0 auto; }\n\n.player-guess-input-container {\n  margin: 1rem 0; }\n\n.player-guess-input {\n  height: 1.5rem;\n  border: 0.5rem solid lightskyblue;\n  width: 100%;\n  border-radius: 3px;\n  font-size: 1.5rem; }\n\n.player-guess-submit-button {\n  height: 2rem;\n  color: white;\n  width: 60%;\n  background-color: black;\n  font-size: 1.2rem;\n  font-weight: 700; }\n\n.player-guess-option-wrapper {\n  border: 3px solid black;\n  width: 100vw;\n  max-width: 100%;\n  height: 1000vh;\n  padding: 0;\n  margin: 0 auto;\n  background-color: lightgray; }\n\n.player-guess-select-button {\n  height: 2rem;\n  color: white;\n  width: 90%;\n  background-color: black;\n  font-size: 1.2rem;\n  font-weight: 700; }\n", "", {"version":3,"sources":["/./client/js/client/js/playerGuess.scss"],"names":[],"mappings":"AAEA;EACI,wBAAuB;EACvB,aAAY;EACZ,gBAAe;EACf,cAAa;EACb,iBAAgB;EAChB,WAAU;EACV,eAAc;EACd,4BACJ,EAAE;;AAEF;EACI,gBAAe;EACf,iBAAgB;EAChB,mBAAkB;EAClB,iBAAgB,EACnB;;AAED;EACI,eAAc;EACd,YAAW;EACX,eAAc,EACjB;;AAED;EACI,eAAc,EACjB;;AAED;EACI,eAAc;EACd,kCAhCe;EAiCf,YAAW;EACX,mBAAkB;EAClB,kBAAiB,EACpB;;AAED;EACI,aAAY;EACZ,aAAY;EACZ,WAAU;EACV,wBAAuB;EACvB,kBAAiB;EACjB,iBAAgB,EACnB;;AAGD;EACI,wBAAuB;EACvB,aAAY;EACZ,gBAAe;EACf,eAAc;EACd,WAAU;EACV,eAAc;EACd,4BACJ,EAAE;;AAEF;EACI,aAAY;EACZ,aAAY;EACZ,WAAU;EACV,wBAAuB;EACvB,kBAAiB;EACjB,iBAAgB,EACnB","file":"playerGuess.scss","sourcesContent":["$blue: lightskyblue;\n\n.player-guess-wrapper {\n    border: 3px solid black;\n    width: 100vw;\n    max-width: 100%;\n    height: 100vh;\n    max-height: 100%;\n    padding: 0;\n    margin: 0 auto;\n    background-color: lightgray\n}\n\n.player-guess-title {\n    font-size: 2rem;\n    font-weight: 700;\n    text-align: center;\n    margin-top: 2rem;\n}\n\n.player-guess-container {\n    display: block;\n    width: 70vw;\n    margin: 0 auto;\n}\n\n.player-guess-input-container {\n    margin: 1rem 0;\n}\n\n.player-guess-input {\n    height: 1.5rem;\n    border: 0.5rem solid $blue;\n    width: 100%;\n    border-radius: 3px;\n    font-size: 1.5rem;\n}\n\n.player-guess-submit-button {\n    height: 2rem;\n    color: white;\n    width: 60%;\n    background-color: black;\n    font-size: 1.2rem;\n    font-weight: 700;\n}\n\n\n.player-guess-option-wrapper {\n    border: 3px solid black;\n    width: 100vw;\n    max-width: 100%;\n    height: 1000vh;\n    padding: 0;\n    margin: 0 auto;\n    background-color: lightgray\n}\n\n.player-guess-select-button {\n    height: 2rem;\n    color: white;\n    width: 90%;\n    background-color: black;\n    font-size: 1.2rem;\n    font-weight: 700;\n}"],"sourceRoot":"webpack://"}]);
 	
 	// exports
 

@@ -44,3 +44,23 @@ $blue: lightskyblue;
     font-size: 1.2rem;
     font-weight: 700;
 }
+
+
+.player-guess-option-wrapper {
+    border: 3px solid black;
+    width: 100vw;
+    max-width: 100%;
+    height: 1000vh;
+    padding: 0;
+    margin: 0 auto;
+    background-color: lightgray
+}
+
+.player-guess-select-button {
+    height: 2rem;
+    color: white;
+    width: 90%;
+    background-color: black;
+    font-size: 1.2rem;
+    font-weight: 700;
+}

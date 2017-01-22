@@ -116,7 +116,7 @@ export default class PlayerCanvas extends Component {
 
   submitDrawing() {
     const drawing = this.refs.canvas.toDataURL();
-    socket.emit('submit-drawing', { drawing });
+    socket.emit('submit-drawing', { drawing, keyword: this.state.message });
   }
 
   render() {

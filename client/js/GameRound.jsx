@@ -18,13 +18,14 @@ export default class GameRound extends Component {
 
   componentDidMount() {
       // set timer for player inputs
-      const timerInt = setInterval(() => {
-        this.setState({ timer: this.state.timer - 1 });
-        if (this.state.timer === 0) {
-          clearInterval(timerInt);
-          socket.emit('start-guesses');
-        }
-      }, 1000);
+    const timerInt = setInterval(() => {
+      this.setState({ timer: this.state.timer - 1 });
+      if (this.state.timer === 0) {
+        clearInterval(timerInt);
+        console.log('START GUESSES::', this.props.roomCode);
+        socket.emit('start-guesses', this.props.roomCode);
+      }
+    }, 1000);
   }
 
 

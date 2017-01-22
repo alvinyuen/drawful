@@ -19,6 +19,7 @@ export default class HostCanvas extends Component {
       dipMenu: false,
       timer: 0,
       roundMenu: false,
+      guessMenu: false,
       round: {},
     };
     this.startGame = this.startGame.bind(this);
@@ -88,7 +89,7 @@ export default class HostCanvas extends Component {
       const roundImg = new Image();
       roundImg.src = round.drawing;
       roundImg.onload = () => {
-        ctx.drawImage(roundImg, 300, 100, 600, 600);
+        ctx.drawImage(roundImg, 400, 100, 600, 600);
         ctx.fillStyle = hexColors[1];
       };
     });
@@ -110,7 +111,36 @@ export default class HostCanvas extends Component {
         }
       }, 1000);
     });
+
+    /* show guess list */
+    socket.on('guess-list', (keywordList) => {
+      console.log('RETURNING GAME ROUND INFO FOR HOST:', keywordList);
+      const ctx = this.refs.canvas.getContext('2d');
+      ctx.font = '40px Open Sans';
+      ctx.fillStyle = '#000000';
+      // load keywords on canvas
+      let x = 100;
+      let y = 200;
+      keywordList.forEach(keyword => {
+        ctx.fillText(keyword, x, y);
+        y += 100;
+        if (y === 700) { x += 100; y += 200; }
+      });
+
+      // set timer for players guesses
+      this.setState({ timer: 30 });
+      const timerInt = setInterval(() => {
+        this.setState({ timer: this.state.timer - 1 });
+        if (this.state.timer === 0) {
+          clearInterval(timerInt);
+          this.setState({ dipMenu: false });
+          this.setState({ timerMenu: false });
+          socket.emit('show-answers');
+        }
+      }, 1000);
+    });
   }
+
 
   startGame() {
     socket.emit('start-game', { roomCode: this.state.roomCode });
@@ -125,6 +155,7 @@ export default class HostCanvas extends Component {
         <div className="host-canvas-wrapper">
           <canvas
             className="host-canvas" ref="canvas" width={width} height={height}
+            style={{ background: 'url("/img/host-bg.png")' }}
           />
           {this.state.mainMenu ?
             <div>
@@ -153,7 +184,10 @@ export default class HostCanvas extends Component {
             : null}
 
           {this.state.roundMenu ?
-            <GameRound round={this.state.round} /> : null }
+            <GameRound
+              round={this.state.round}
+              roomCode={this.state.roomCode}
+            /> : null }
 
         </div>
       </div>
