@@ -20,8 +20,10 @@ const wordList = ['Hot Pocket', 'vikings', 'thermonuclear detonation', 'invading
 
 const clients = [];
 var fixedDrawing = []; // total rounds
+console.log('START OF FIXED DRAWING:', fixedDrawing);
 var rounds = []; // shift off
 var gameRound = []; // individual rounds
+
 
 const findClient = (socket) => {
   const index = clients.findIndex(client => client.id === socket.id);
@@ -88,6 +90,7 @@ module.exports = (io) => {
         console.log(`[${socket.id} - PLAYER]: ${payload.playerName} JOINED ROOM ${payload.roomCode}, TOTAL PLAYERS IN ROOM: ${clients[hostIndex].playerNum}`);
         socket.emit('player-join-response', {
           playerNum: clients[hostIndex].playerNum,
+          playerName: payload.playerName,
         });
       } else {
         socket.emit('player-join-response');
@@ -121,12 +124,17 @@ module.exports = (io) => {
     });
 
     socket.on('submit-drawing', (payload) => {
+      console.log('SUBMITTING DRAWING FROM:', findClient(socket).playerName, 'payload:', payload.keyword, payload.drawing);
       findClient(socket).drawing = payload.drawing;
       findClient(socket).keyword = payload.keyword;
     });
 
 
-    socket.on('start-rounds', (payload) => {
+    socket.on('start-rounds', ({ type }) => {
+      if (type === 'new game') {
+        fixedDrawing = [];
+        gameScore = [];
+      }
       console.log('*** ATTEMPT TO START ROUNDS ***');
       const host = findClient(socket);
       const roomCode = host.roomCode;
@@ -134,14 +142,18 @@ module.exports = (io) => {
       /* todo - alert players who have not finished drawing */
       const players = findPlayers(roomCode);
       if (!fixedDrawing.length) {
-        fixedDrawing = players.filter(player => player.drawing);
-        rounds = players.filter(player => player.drawing)
+        fixedDrawing = players.filter(player => player.drawing && player.keyword !== '');
+        console.log('START INITIAL ROUNDS FIXED DRAWING IS:', fixedDrawing);
+        rounds = players.filter(player => player.drawing && player.keyword !== '')
         .map(player => ({
           id: player.id,
           playerName: player.playerName,
           keyword: player.keyword,
-          drawing: player.drawing }));
+          drawing: player.drawing,
+          realAnswer: true }));
+
         const round = rounds.shift();
+        gameRound = [];
         gameRound.push(round);
         console.log('gameround init:', JSON.stringify(gameRound));
         socket.emit('round-start', round);
@@ -151,6 +163,7 @@ module.exports = (io) => {
         console.log('GAME ENDED');
       } else {
         const round = rounds.shift();
+        gameRound = [];
         gameRound.push(round);
         console.log('gameround init:', JSON.stringify(gameRound));
         socket.emit('round-start', round);
@@ -162,40 +175,79 @@ module.exports = (io) => {
     socket.on('submit-keyword', (keyword) => {
       console.log('RECEIVE KEYWORD:', keyword);
       console.log('submit keyword gameround init:', JSON.stringify(gameRound));
-      gameRound[1] = gameRound[1] || [];
       const player = findClient(socket);
-      gameRound[1].push({ id: player.id, playerName: player.playerName, keyword });
+      gameRound.push({ id: player.id, playerName: player.playerName, keyword, guess: '' });
       console.log('GAMEROUND ARRAY AFTER PLAYER SUBMISSION:', JSON.stringify(gameRound));
     });
 
     /* user start guesses - return list of keywords */
     socket.on('start-guesses', (roomCode) => {
       console.log('START GUESSES TRIGGERED');
-      gameRound[1] = gameRound[1] || [];
-      if (!gameRound[1].length) {
+      if (gameRound.length <= 1) {
         console.error('No player submissions');
       } else {
         // return game round information
-        const listOfKeywords = [];
-        listOfKeywords.push(gameRound[0].keyword);
-        gameRound[1].forEach(player => listOfKeywords.push(player.keyword));
+        const listOfKeywords = gameRound.map(player => player.keyword);
         listOfKeywords.sort();
         socket.broadcast.to(roomCode).emit('guess-list', listOfKeywords);
       }
     });
 
+    /* player guess */
+    socket.on('player-guess', ({ keyword }) => {
+      const player = findClient(socket);
+      const index = gameRound.findIndex(client => player.playerName === client.playerName);
+      if (index === -1) {
+        gameRound.push({ id: player.id, playerName: player.playerName, keyword: '', guess: keyword });
+        console.log('PUSHED guess to gameROUND', gameRound);
+      } else {
+        console.log('SET guess to gameROUND', gameRound);
+        // previously have submitted keyword
+        gameRound[index].guess = keyword;
+      }
+    });
+
     /* show answers */
     socket.on('show-answers', () => {
-      // calc score
-      // return keywords and who they belong to
+      const keywordWithPlayers = gameRound.filter(player => player.keyword && player.playerName)
+      .map(player => ({ keyword: player.keyword, playerName: player.playerName }));
+      socket.emit('send-answers', keywordWithPlayers);
     });
 
     /* return scores */
-    socket.on('show-scores', () => {
+    var gameScore = []; // player scores
+    socket.on('show-scores', (roomCode) => {
+      const players = findPlayers(roomCode);
+      if (!gameScore.length) {
+        players.forEach(player =>
+        gameScore.push({ id: players.id, playerName: player.playerName, score: 0 }));
+      }
 
-
+      gameScore.forEach((player) => {
+        // if player didnot enter keyword nor guess
+        const index = gameRound.findIndex(guess => player.id === guess.id);
+        if (index === -1) {
+          const scoreIndex = gameScore.findIndex(scorePlayer => player.id === scorePlayer.id);
+          gameScore[scoreIndex].score -= 100;
+        } else if (gameRound[index].guess) {
+          // find players with the keywords, check if its real answer
+          var addPtsForId = [];
+          gameRound.forEach((roundPlayer) => {
+            if (gameRound[index].guess === roundPlayer.keyword && gameRound[index].realAnswer) {
+              addPtsForId.push(player.id);
+              addPtsForId.push(gameRound[index].id);
+            } else if (gameRound[index].guess === player.keyword) {
+              addPtsForId.push(player.id);
+            }
+          });
+          addPtsForId.forEach((id) => {
+            const scoreIndex = gameScore.findIndex(scorePlayer => id === scorePlayer.id);
+            gameScore[scoreIndex].score += 100;
+          });
+        }
+      });
+      socket.emit('send-scores', gameScore);
     });
-
   }); /* socket connection */
 };
 

@@ -18,6 +18,7 @@ export default class PlayerGuess extends Component {
     };
     this.submitKeyword = this.submitKeyword.bind(this);
     this.handleInput = this.handleInput.bind(this);
+    this.selectGuess = this.selectGuess.bind(this);
   }
 
   componentDidMount() {
@@ -45,6 +46,10 @@ export default class PlayerGuess extends Component {
     }
   }
 
+  selectGuess(keyword) {
+    socket.emit('player-guess', { keyword });
+  }
+
   render() {
     return (
       <div >
@@ -56,8 +61,8 @@ export default class PlayerGuess extends Component {
                 <button
                   key={i}
                   className="player-guess-select-button"
-                  onClick={this.submitKeyword}
-                  onTouchStartCapture={this.submitKeyword}
+                  onClick={() => { this.selectGuess(keyword); }}
+                  onTouchStartCapture={() => { this.selectGuess(keyword); }}
                 > {keyword}
                 </button>,
               )}
@@ -80,7 +85,7 @@ export default class PlayerGuess extends Component {
               <button
                 className="player-guess-submit-button"
                 onClick={this.submitKeyword}
-                onTouchStart={this.submitKeyword}
+                onTouchStartCapture={this.submitKeyword}
               > Submit
               </button>
             </section>

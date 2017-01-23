@@ -29,7 +29,7 @@ const App = () => {
       <Route path="/">
         <Route path="host" component={HostCanvas} />
         <Route path="playerJoin" component={PlayerJoin} />
-        <Route path="player/:playerNum" component={PlayerCanvas} />
+        <Route path="player/:playerNum/:playerName" component={PlayerCanvas} />
       </Route>
     </Router>
   );

@@ -28,7 +28,7 @@ export default class playerJoin extends Component {
     socket.on('player-join-response', (payload) => {
       /* direct to players in-game canvas page */
       if (payload.playerNum) {
-        browserHistory.push(`/player/${payload.playerNum}`);
+        browserHistory.push(`/player/${payload.playerNum}/${payload.playerName}`);
       }
     });
   }
@@ -56,7 +56,7 @@ export default class playerJoin extends Component {
           <button
             className="player-join-button"
             onClick={this.joinRoom}
-            onTouchStart={this.joinRoom}
+            onTouchStartCapture={this.joinRoom}
           > JOIN
           </button>
         </section>

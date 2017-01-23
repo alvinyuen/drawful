@@ -107,7 +107,7 @@ export default class HostCanvas extends Component {
           clearInterval(timerInt);
           this.setState({ dipMenu: false });
           this.setState({ timerMenu: false });
-          socket.emit('start-rounds');
+          socket.emit('start-rounds', { type: 'new game' });
         }
       }, 1000);
     });

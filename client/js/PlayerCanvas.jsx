@@ -50,9 +50,12 @@ export default class PlayerCanvas extends Component {
     });
 
     socket.on('round-enter-keyword', (round) => {
-      console.log('PLAYER ENTER KEYWORD START', round);
-      this.setState({ avatarMenu: false });
-      this.setState({ keywordMenu: true });
+      // check if this is player's own drawing
+       console.log('CHECK IF PLAYER IS RELATED TO PIC', round.playerName+ ':', this.props.routeParams.playerName);
+      if (round.playerName !== this.props.routeParams.playerName) {
+        this.setState({ avatarMenu: false });
+        this.setState({ keywordMenu: true });
+      }
     });
   }
 
@@ -133,12 +136,13 @@ export default class PlayerCanvas extends Component {
             {this.state.avatarMenu ?
               <button
                 className="player-canvas-button"
-                onTouchStart={this.submitAvatar}
+                onTouchStartCapture={this.submitAvatar}
+                onClick={this.submitAvatar}
               > Submit Avatar </button> :
               <button
                 className="player-canvas-button"
-                onTouchStart={this.submitDrawing}
                 onClick={this.submitDrawing}
+                onTouchStartCapture={this.submitDrawing}
               > Submit Drawing </button>}
           </div> }
       </div>

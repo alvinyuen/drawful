@@ -93,7 +93,7 @@
 	      { path: '/' },
 	      _react2.default.createElement(_reactRouter.Route, { path: 'host', component: _HostCanvas2.default }),
 	      _react2.default.createElement(_reactRouter.Route, { path: 'playerJoin', component: _PlayerJoin2.default }),
-	      _react2.default.createElement(_reactRouter.Route, { path: 'player/:playerNum', component: _PlayerCanvas2.default })
+	      _react2.default.createElement(_reactRouter.Route, { path: 'player/:playerNum/:playerName', component: _PlayerCanvas2.default })
 	    )
 	  );
 	};
@@ -27003,9 +27003,12 @@
 	      });
 	
 	      _HostCanvas.socket.on('round-enter-keyword', function (round) {
-	        console.log('PLAYER ENTER KEYWORD START', round);
-	        _this2.setState({ avatarMenu: false });
-	        _this2.setState({ keywordMenu: true });
+	        // check if this is player's own drawing
+	        console.log('CHECK IF PLAYER IS RELATED TO PIC', round.playerName + ':', _this2.props.routeParams.playerName);
+	        if (round.playerName !== _this2.props.routeParams.playerName) {
+	          _this2.setState({ avatarMenu: false });
+	          _this2.setState({ keywordMenu: true });
+	        }
 	      });
 	    }
 	  }, {
@@ -27109,15 +27112,16 @@
 	            'button',
 	            {
 	              className: 'player-canvas-button',
-	              onTouchStart: this.submitAvatar
+	              onTouchStartCapture: this.submitAvatar,
+	              onClick: this.submitAvatar
 	            },
 	            ' Submit Avatar '
 	          ) : _react2.default.createElement(
 	            'button',
 	            {
 	              className: 'player-canvas-button',
-	              onTouchStart: this.submitDrawing,
-	              onClick: this.submitDrawing
+	              onClick: this.submitDrawing,
+	              onTouchStartCapture: this.submitDrawing
 	            },
 	            ' Submit Drawing '
 	          )
@@ -27318,7 +27322,7 @@
 	            clearInterval(timerInt);
 	            _this2.setState({ dipMenu: false });
 	            _this2.setState({ timerMenu: false });
-	            socket.emit('start-rounds');
+	            socket.emit('start-rounds', { type: 'new game' });
 	          }
 	        }, 1000);
 	      });
@@ -36180,6 +36184,7 @@
 	    };
 	    _this.submitKeyword = _this.submitKeyword.bind(_this);
 	    _this.handleInput = _this.handleInput.bind(_this);
+	    _this.selectGuess = _this.selectGuess.bind(_this);
 	    return _this;
 	  }
 	
@@ -36214,6 +36219,11 @@
 	      }
 	    }
 	  }, {
+	    key: 'selectGuess',
+	    value: function selectGuess(keyword) {
+	      _HostCanvas.socket.emit('player-guess', { keyword: keyword });
+	    }
+	  }, {
 	    key: 'render',
 	    value: function render() {
 	      var _this3 = this;
@@ -36238,8 +36248,12 @@
 	                {
 	                  key: i,
 	                  className: 'player-guess-select-button',
-	                  onClick: _this3.submitKeyword,
-	                  onTouchStartCapture: _this3.submitKeyword
+	                  onClick: function onClick() {
+	                    _this3.selectGuess(keyword);
+	                  },
+	                  onTouchStartCapture: function onTouchStartCapture() {
+	                    _this3.selectGuess(keyword);
+	                  }
 	                },
 	                ' ',
 	                keyword
@@ -36273,7 +36287,7 @@
 	              {
 	                className: 'player-guess-submit-button',
 	                onClick: this.submitKeyword,
-	                onTouchStart: this.submitKeyword
+	                onTouchStartCapture: this.submitKeyword
 	              },
 	              ' Submit'
 	            )
@@ -36389,7 +36403,7 @@
 	      _HostCanvas.socket.on('player-join-response', function (payload) {
 	        /* direct to players in-game canvas page */
 	        if (payload.playerNum) {
-	          _reactRouter.browserHistory.push('/player/' + payload.playerNum);
+	          _reactRouter.browserHistory.push('/player/' + payload.playerNum + '/' + payload.playerName);
 	        }
 	      });
 	    }
@@ -36428,7 +36442,7 @@
 	            {
 	              className: 'player-join-button',
 	              onClick: this.joinRoom,
-	              onTouchStart: this.joinRoom
+	              onTouchStartCapture: this.joinRoom
 	            },
 	            ' JOIN'
 	          )
