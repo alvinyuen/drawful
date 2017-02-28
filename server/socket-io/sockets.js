@@ -233,10 +233,13 @@ module.exports = (io) => {
           // find players with the keywords, check if its real answer
           var addPtsForId = [];
           gameRound.forEach((roundPlayer) => {
-            if (gameRound[index].guess === roundPlayer.keyword && gameRound[index].realAnswer) {
+            if (gameRound[index].guess === roundPlayer.keyword
+            && gameRound[index].realAnswer
+            && gameRound[index].id !== roundPlayer.id) {
               addPtsForId.push(player.id);
               addPtsForId.push(gameRound[index].id);
-            } else if (gameRound[index].guess === player.keyword) {
+            } else if (gameRound[index].guess === player.keyword
+            && gameRound[index].id !== roundPlayer.id) {
               addPtsForId.push(player.id);
             }
           });

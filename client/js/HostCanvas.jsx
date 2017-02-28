@@ -20,7 +20,10 @@ export default class HostCanvas extends Component {
       timer: 0,
       roundMenu: false,
       guessMenu: false,
+      scoreMenu: false,
       round: {},
+      keywordListWithPlayers: [],
+      score: [],
     };
     this.startGame = this.startGame.bind(this);
   }
@@ -116,7 +119,7 @@ export default class HostCanvas extends Component {
     socket.on('guess-list', (keywordList) => {
       console.log('RETURNING GAME ROUND INFO FOR HOST:', keywordList);
       const ctx = this.refs.canvas.getContext('2d');
-      ctx.font = '40px Open Sans';
+      ctx.font = '30px Open Sans';
       ctx.fillStyle = '#000000';
       // load keywords on canvas
       let x = 100;
@@ -135,9 +138,23 @@ export default class HostCanvas extends Component {
           clearInterval(timerInt);
           this.setState({ dipMenu: false });
           this.setState({ timerMenu: false });
-          socket.emit('show-answers');
+          socket.emit('show-answers', this.state.roomCode);
+          socket.emit('show-scores', this.state.roomCode);
         }
       }, 1000);
+    });
+
+    socket.on('send-answers', (keyword) => {
+      const ctx = this.refs.canvas.getContext('2d');
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      this.setState({ keywordListWithPlayers: keyword });
+      this.setState({ roundMenu: false });
+      this.setState({ scoreMenu: true });
+      console.log('KEYWORDS LIST WITH PLAYERS:', this.state.keywordListWithPlayers);
+    });
+
+    socket.on('send-scores', (scores) => {
+      console.log('RECEIVE SCORES:', scores);
     });
   }
 
@@ -189,6 +206,13 @@ export default class HostCanvas extends Component {
               roomCode={this.state.roomCode}
             /> : null }
 
+          {this.state.scoreMenu ?
+            <div>
+              <div className="overlay"> Score </div>
+              {this.state.keywordListWithPlayers.map((keyword, i) =>
+                <div key={i} className="score-overlay2"> `${keyword.keyword} - ${keyword.playerName}` </div>)}
+            </div>
+            : null}
         </div>
       </div>
     );

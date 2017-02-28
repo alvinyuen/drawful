@@ -27230,7 +27230,10 @@
 	      timer: 0,
 	      roundMenu: false,
 	      guessMenu: false,
-	      round: {}
+	      scoreMenu: false,
+	      round: {},
+	      keywordListWithPlayers: [],
+	      score: []
 	    };
 	    _this.startGame = _this.startGame.bind(_this);
 	    return _this;
@@ -27331,7 +27334,7 @@
 	      socket.on('guess-list', function (keywordList) {
 	        console.log('RETURNING GAME ROUND INFO FOR HOST:', keywordList);
 	        var ctx = _this2.refs.canvas.getContext('2d');
-	        ctx.font = '40px Open Sans';
+	        ctx.font = '30px Open Sans';
 	        ctx.fillStyle = '#000000';
 	        // load keywords on canvas
 	        var x = 100;
@@ -27352,9 +27355,23 @@
 	            clearInterval(timerInt);
 	            _this2.setState({ dipMenu: false });
 	            _this2.setState({ timerMenu: false });
-	            socket.emit('show-answers');
+	            socket.emit('show-answers', _this2.state.roomCode);
+	            socket.emit('show-scores', _this2.state.roomCode);
 	          }
 	        }, 1000);
+	      });
+	
+	      socket.on('send-answers', function (keyword) {
+	        var ctx = _this2.refs.canvas.getContext('2d');
+	        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+	        _this2.setState({ keywordListWithPlayers: keyword });
+	        _this2.setState({ roundMenu: false });
+	        _this2.setState({ scoreMenu: true });
+	        console.log('KEYWORDS LIST WITH PLAYERS:', _this2.state.keywordListWithPlayers);
+	      });
+	
+	      socket.on('send-scores', function (scores) {
+	        console.log('RECEIVE SCORES:', scores);
 	      });
 	    }
 	  }, {
@@ -27422,7 +27439,27 @@
 	          this.state.roundMenu ? _react2.default.createElement(_GameRound2.default, {
 	            round: this.state.round,
 	            roomCode: this.state.roomCode
-	          }) : null
+	          }) : null,
+	          this.state.scoreMenu ? _react2.default.createElement(
+	            'div',
+	            null,
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'overlay' },
+	              ' Score '
+	            ),
+	            this.state.keywordListWithPlayers.map(function (keyword, i) {
+	              return _react2.default.createElement(
+	                'div',
+	                { key: i, className: 'score-overlay2' },
+	                ' `$',
+	                keyword.keyword,
+	                ' - $',
+	                keyword.playerName,
+	                '` '
+	              );
+	            })
+	          ) : null
 	        )
 	      );
 	    }
@@ -36132,7 +36169,7 @@
 	
 	
 	// module
-	exports.push([module.id, ".host-wrapper {\n  display: relative; }\n\n.host-bg-image {\n  z-index: -999;\n  margin: 0 auto;\n  display: absolute;\n  top: 0;\n  left: 0; }\n\n.host-canvas-wrapper {\n  position: relative; }\n\n.host-canvas {\n  z-index: 999;\n  margin: 0 auto;\n  display: absolute;\n  top: 0;\n  left: 0; }\n\n.overlay {\n  width: 40rem;\n  border: 1px solid black;\n  border-radius: 5px;\n  position: absolute;\n  top: 10%;\n  left: 50%;\n  margin-left: -20rem;\n  text-align: center;\n  font-size: 40px;\n  font-weight: 700; }\n\n.overlay2 {\n  width: 20rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 40%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n\n.overlay3 {\n  width: 20rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 60%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n\n.start-game-button {\n  width: 20rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 80%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n", "", {"version":3,"sources":["/./client/js/client/js/hostCanvas.scss"],"names":[],"mappings":"AAAA;EACI,kBAAiB,EAGpB;;AAED;EACI,cAAa;EACb,eAAc;EACd,kBAAiB;EACjB,OAAM;EACN,QAAO,EACV;;AAED;EACI,mBAAkB,EACrB;;AAED;EACI,aAAY;EACZ,eAAc;EACd,kBAAiB;EACjB,OAAM;EACN,QAAO,EACV;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB;EAClB,gBAAe;EACf,iBAAgB,EACnB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB","file":"hostCanvas.scss","sourcesContent":[".host-wrapper {\n    display: relative;\n\n\n}\n\n.host-bg-image {\n    z-index: -999;\n    margin: 0 auto;\n    display: absolute;\n    top: 0;\n    left: 0;\n}\n\n.host-canvas-wrapper {\n    position: relative;\n}\n\n.host-canvas {\n    z-index: 999;\n    margin: 0 auto;\n    display: absolute;\n    top: 0;\n    left: 0;\n}\n\n.overlay {\n    width: 40rem;\n    border: 1px solid black;\n    border-radius: 5px;\n    position: absolute;\n    top: 10%;\n    left: 50%;\n    margin-left: -20rem;\n    text-align: center;\n    font-size: 40px;\n    font-weight: 700;\n}\n\n.overlay2 {\n    width: 20rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 40%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}\n\n.overlay3 {\n    width: 20rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 60%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}\n\n.start-game-button {\n    width: 20rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 80%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}\n"],"sourceRoot":"webpack://"}]);
+	exports.push([module.id, ".host-wrapper {\n  display: relative; }\n\n.host-bg-image {\n  z-index: -999;\n  margin: 0 auto;\n  display: absolute;\n  top: 0;\n  left: 0; }\n\n.host-canvas-wrapper {\n  position: relative; }\n\n.host-canvas {\n  z-index: 999;\n  margin: 0 auto;\n  display: absolute;\n  top: 0;\n  left: 0; }\n\n.overlay {\n  width: 40rem;\n  border: 1px solid black;\n  border-radius: 5px;\n  position: absolute;\n  top: 10%;\n  left: 50%;\n  margin-left: -20rem;\n  text-align: center;\n  font-size: 40px;\n  font-weight: 700; }\n\n.overlay2 {\n  width: 20rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 40%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n\n.overlay3 {\n  width: 20rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 60%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n\n.start-game-button {\n  width: 20rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 80%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n\n.score-overlay2 {\n  width: 30rem;\n  border: 1px solid black;\n  position: absolute;\n  top: 40%;\n  left: 50%;\n  margin-left: -10rem;\n  text-align: center; }\n", "", {"version":3,"sources":["/./client/js/client/js/hostCanvas.scss"],"names":[],"mappings":"AAAA;EACI,kBAAiB,EAGpB;;AAED;EACI,cAAa;EACb,eAAc;EACd,kBAAiB;EACjB,OAAM;EACN,QAAO,EACV;;AAED;EACI,mBAAkB,EACrB;;AAED;EACI,aAAY;EACZ,eAAc;EACd,kBAAiB;EACjB,OAAM;EACN,QAAO,EACV;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB;EAClB,gBAAe;EACf,iBAAgB,EACnB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB;;AAED;EACI,aAAY;EACZ,wBAAuB;EACvB,mBAAkB;EAClB,SAAQ;EACR,UAAS;EACT,oBAAmB;EACnB,mBAAkB,EACrB","file":"hostCanvas.scss","sourcesContent":[".host-wrapper {\n    display: relative;\n\n\n}\n\n.host-bg-image {\n    z-index: -999;\n    margin: 0 auto;\n    display: absolute;\n    top: 0;\n    left: 0;\n}\n\n.host-canvas-wrapper {\n    position: relative;\n}\n\n.host-canvas {\n    z-index: 999;\n    margin: 0 auto;\n    display: absolute;\n    top: 0;\n    left: 0;\n}\n\n.overlay {\n    width: 40rem;\n    border: 1px solid black;\n    border-radius: 5px;\n    position: absolute;\n    top: 10%;\n    left: 50%;\n    margin-left: -20rem;\n    text-align: center;\n    font-size: 40px;\n    font-weight: 700;\n}\n\n.overlay2 {\n    width: 20rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 40%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}\n\n.overlay3 {\n    width: 20rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 60%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}\n\n.start-game-button {\n    width: 20rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 80%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}\n\n.score-overlay2 {\n    width: 30rem;\n    border: 1px solid black;\n    position: absolute;\n    top: 40%;\n    left: 50%;\n    margin-left: -10rem;\n    text-align: center;\n}\n"],"sourceRoot":"webpack://"}]);
 	
 	// exports
 
